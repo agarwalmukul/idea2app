@@ -398,7 +398,15 @@ export function ProjectWorkspace({
       isCanceled = true
       clearPoll()
     }
-  }, [\n    generatingDocuments,\n    getGenerationSnapshot,\n    checkIfContentIncreased,\n    loadGeneratingState,\n    saveGeneratingState,\n    router,\n    isPromptOnlyMode,\n  ])
+  }, [
+    generatingDocuments,
+    getGenerationSnapshot,
+    checkIfContentIncreased,
+    loadGeneratingState,
+    saveGeneratingState,
+    router,
+    isPromptOnlyMode,
+  ])
 
 
   const getDocumentStatus = (type: DocumentType): "done" | "in_progress" | "pending" => {
