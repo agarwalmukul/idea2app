@@ -1,3 +1,19 @@
+import { buildSecurePrompt } from "./sanitize"
+
+const PRD_USER_TEMPLATE = `Product Idea: {{idea}}\n\nProduct Name: {{name}}{{competitiveContext}}`
+
+export function buildPRDUserPrompt(
+  idea: string,
+  name: string,
+  competitiveContext: string
+): string {
+  return buildSecurePrompt(
+    PRD_USER_TEMPLATE,
+    { idea, name, competitiveContext },
+    { maxLengths: { competitiveContext: 50000 } }
+  )
+}
+
 export const PRD_SYSTEM_PROMPT = `## ROLE
 
 You are a **PRD Agent**, an expert product manager responsible for generating comprehensive Product Requirements Documents (PRDs). Your PRDs define the purpose, value proposition, features, and functionality of product concepts with precision and clarity.

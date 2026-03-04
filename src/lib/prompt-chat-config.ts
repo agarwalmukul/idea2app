@@ -1,3 +1,5 @@
+// Prompt constants live in @/lib/prompts — re-exported here so that
+// existing imports of prompt-chat-config.ts continue to work unchanged.
 export { PROMPT_CHAT_SYSTEM, IDEA_SUMMARY_PROMPT, POST_SUMMARY_SYSTEM } from "@/lib/prompts"
 
 // Available AI models from OpenRouter

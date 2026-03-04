@@ -1,7 +1,7 @@
 import OpenAI from "openai"
 import { searchCompetitors } from "./perplexity"
 import { extractCompetitorInfo, type TavilyExtractResult } from "./tavily"
-import { COMPETITIVE_ANALYSIS_SYSTEM_PROMPT, buildCompetitiveAnalysisUserPrompt, PRD_SYSTEM_PROMPT, MVP_PLAN_SYSTEM_PROMPT, TECH_SPEC_SYSTEM_PROMPT, buildSecurePrompt } from "@/lib/prompts"
+import { COMPETITIVE_ANALYSIS_SYSTEM_PROMPT, buildCompetitiveAnalysisUserPrompt, PRD_SYSTEM_PROMPT, buildPRDUserPrompt, MVP_PLAN_SYSTEM_PROMPT, buildMVPPlanUserPrompt, TECH_SPEC_SYSTEM_PROMPT, buildTechSpecUserPrompt } from "@/lib/prompts"
 
 // Re-use the same OpenRouter client pattern from openrouter.ts
 const openrouter = new OpenAI({
@@ -152,11 +152,7 @@ export async function runPRD(input: PRDInput): Promise<AnalysisResult> {
       { role: "system", content: PRD_SYSTEM_PROMPT },
       {
         role: "user",
-        content: buildSecurePrompt(
-          `Product Idea: {{idea}}\n\nProduct Name: {{name}}{{competitiveContext}}`,
-          { idea: input.idea, name: input.name, competitiveContext: competitiveContext },
-          { maxLengths: { competitiveContext: 50000 } }
-        ),
+        content: buildPRDUserPrompt(input.idea, input.name, competitiveContext),
       },
     ],
     max_tokens: 8192,
@@ -184,11 +180,7 @@ export async function runMVPPlan(
       { role: "system", content: MVP_PLAN_SYSTEM_PROMPT },
       {
         role: "user",
-        content: buildSecurePrompt(
-          `Product idea: {{idea}}\n\nProduct Name: {{name}}{{prdContext}}`,
-          { idea: input.idea, name: input.name, prdContext: prdContext },
-          { maxLengths: { prdContext: 50000 } }
-        ),
+        content: buildMVPPlanUserPrompt(input.idea, input.name, prdContext),
       },
     ],
     max_tokens: 8192,
@@ -215,11 +207,7 @@ export async function runTechSpec(
       { role: "system", content: TECH_SPEC_SYSTEM_PROMPT },
       {
         role: "user",
-        content: buildSecurePrompt(
-          input.prd ? `PRD document: {{prdContent}}` : `Product idea: {{idea}}\n\nProduct Name: {{name}}`,
-          input.prd ? { prdContent: input.prd } : { idea: input.idea, name: input.name },
-          { maxLengths: { prdContent: 50000 } }
-        ),
+        content: buildTechSpecUserPrompt(input.idea, input.name, input.prd),
       },
     ],
     max_tokens: 8192,

@@ -1,3 +1,23 @@
+import { buildSecurePrompt } from "./sanitize"
+
+const TECH_SPEC_FROM_PRD_TEMPLATE = `PRD document: {{prdContent}}`
+const TECH_SPEC_FROM_IDEA_TEMPLATE = `Product idea: {{idea}}\n\nProduct Name: {{name}}`
+
+export function buildTechSpecUserPrompt(
+  idea: string,
+  name: string,
+  prd?: string
+): string {
+  if (prd) {
+    return buildSecurePrompt(
+      TECH_SPEC_FROM_PRD_TEMPLATE,
+      { prdContent: prd },
+      { maxLengths: { prdContent: 50000 } }
+    )
+  }
+  return buildSecurePrompt(TECH_SPEC_FROM_IDEA_TEMPLATE, { idea, name })
+}
+
 export const TECH_SPEC_SYSTEM_PROMPT = `You are a Spec-Driven Development agent modeled after GitHub Spec-Kit.
 You are performing the equivalent of \`/speckit.techspec\`, producing a Technical Specification document.
 

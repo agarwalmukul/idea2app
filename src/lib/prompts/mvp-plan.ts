@@ -1,3 +1,19 @@
+import { buildSecurePrompt } from "./sanitize"
+
+const MVP_PLAN_USER_TEMPLATE = `Product idea: {{idea}}\n\nProduct Name: {{name}}{{prdContext}}`
+
+export function buildMVPPlanUserPrompt(
+  idea: string,
+  name: string,
+  prdContext: string
+): string {
+  return buildSecurePrompt(
+    MVP_PLAN_USER_TEMPLATE,
+    { idea, name, prdContext },
+    { maxLengths: { prdContext: 50000 } }
+  )
+}
+
 export const MVP_PLAN_SYSTEM_PROMPT = `You are an MVP Planning agent responsible for distilling Product Requirements Documents into focused, actionable Minimum Viable Product plans.
 You are performing the equivalent of scoping a first release that validates the core product hypothesis.
 
