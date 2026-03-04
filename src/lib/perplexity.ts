@@ -1,4 +1,5 @@
 import OpenAI from "openai"
+import { COMPETITOR_SEARCH_SYSTEM_PROMPT, buildCompetitorSearchUserPrompt } from "@/lib/prompts"
 
 // Perplexity uses an OpenAI-compatible interface with a different base URL
 const perplexity = new OpenAI({
@@ -24,51 +25,11 @@ export async function searchCompetitors(
     throw new Error("Perplexity API key not configured")
   }
 
-  const systemPrompt = `You are a competitive intelligence analyst.
-Your task is to identify 3-5 real, currently active competitors for a given business idea.
-
-Prioritize:
-- Closest functional match first
-- Same target user or customer problem
-- Similar core value proposition (not just loosely related tools)
-
-Avoid:
-- Generic or broad platforms unless they directly compete
-- Tangential or unrelated companies
-
-For each competitor, return:
-1. Company name
-2. One-line description of what they do
-3. Why they are a close competitor
-4. Official website URL
-
-If no exact competitors exist, return the nearest adjacent alternatives and clearly state that they are partial matches.
-
-Return your response as a JSON object with this exact structure:
-{
-  "competitors": [
-    {
-      "name": "CompanyName",
-      "description": "What they do",
-      "whyCompetes": "Why they compete with the idea",
-      "url": "https://example.com"
-    }
-  ]
-}
-
-Only include real companies. Only return valid JSON with no other text.`
-
-  const userPrompt = `Find 3-5 real competitors for this business idea:
-Business Name: ${name}
-Business Idea: ${idea}
-
-Return the JSON object with competitors as described in your instructions.`
-
   const response = await perplexity.chat.completions.create({
     model: "sonar-pro",
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "system", content: COMPETITOR_SEARCH_SYSTEM_PROMPT },
+      { role: "user", content: buildCompetitorSearchUserPrompt(idea, name) },
     ],
     max_tokens: 2048,
     temperature: 0.2,

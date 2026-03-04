@@ -3,19 +3,13 @@ import { createClient } from "@/lib/supabase/server"
 import { CREDIT_COSTS } from "@/lib/utils"
 import Anthropic from "@anthropic-ai/sdk"
 import { trackAPIMetrics, MetricsTimer, getErrorType, getErrorMessage } from "@/lib/metrics-tracker"
+import { buildAppGenerationPrompt } from "@/lib/prompts"
 
 const APP_TYPE_CREDITS: Record<string, number> = {
   static: CREDIT_COSTS["app-static"],
   dynamic: CREDIT_COSTS["app-dynamic"],
   spa: CREDIT_COSTS["app-spa"],
   pwa: CREDIT_COSTS["app-pwa"],
-}
-
-const APP_TYPE_PROMPTS: Record<string, string> = {
-  static: "a simple static website using HTML, CSS, and vanilla JavaScript. Include a modern responsive design with a header, hero section, features, and footer.",
-  dynamic: "a dynamic website using Next.js with TypeScript and Tailwind CSS. Include API routes, a database-connected feature, and server-side rendering.",
-  spa: "a single page application using React with TypeScript, Vite, and Tailwind CSS. Include state management with React Context, client-side routing, and a responsive UI.",
-  pwa: "a progressive web app using Next.js with TypeScript. Include a service worker for offline support, a web manifest, and push notification capability.",
 }
 
 export async function POST(request: Request) {
@@ -170,19 +164,7 @@ export async function POST(request: Request) {
         apiKey: process.env.ANTHROPIC_API_KEY,
       })
 
-      const prompt = `Generate ${APP_TYPE_PROMPTS[appType]}
-
-**Project Name:** ${name}
-**Business Idea:** ${idea}
-${context}
-
-Generate production-ready code. Output each file with its path and content in this format:
-
---- FILE: path/to/file.ext ---
-(file content here)
---- END FILE ---
-
-Include all necessary files (package.json, configuration files, components, pages, styles, etc.). Make the app visually appealing with a dark theme and modern design.`
+      const prompt = buildAppGenerationPrompt(appType, name, idea, context)
 
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",

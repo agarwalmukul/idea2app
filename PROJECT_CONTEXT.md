@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 
-**Last Updated**: 2026-02-23 (Added Stripe Payment Integration Details)
+**Last Updated**: 2026-03-03 (Centralized System Prompts with Injection Protection)
 **Project**: Idea2App - AI-Powered Business Analysis Platform
 
 ---
@@ -364,9 +364,40 @@ src/
 | `components/chat/` | Chat feature components | Enhancing chat functionality |
 | `components/analysis/` | Analysis feature components | Adding analysis features |
 | `lib/` | Business logic & external APIs | Integrating new services |
+| `lib/prompts/` | **All AI system prompts** — one file per document type | Editing any AI prompt or adding new document generation features |
 | `lib/supabase/` | Database & auth logic | Database operations |
 | `lib/pdf-utils.ts` | PDF export logic | Changing PDF styling or export behaviour |
 | `types/` | TypeScript definitions | Adding new type definitions |
+
+---
+
+## 4a. Prompt Architecture (`src/lib/prompts/`)
+
+All AI system prompts live in `src/lib/prompts/`. Import everything through the barrel: `import { ... } from "@/lib/prompts"`.
+
+### File Map
+
+| File | Contents | Used By |
+|------|----------|---------|
+| `sanitize.ts` | `sanitizeInput()`, `buildSecurePrompt()` | All prompt builders |
+| `competitive-analysis.ts` | `COMPETITIVE_ANALYSIS_SYSTEM_PROMPT`, `buildCompetitiveAnalysisUserPrompt()` | `analysis-pipelines.ts` |
+| `prd.ts` | `PRD_SYSTEM_PROMPT` | `analysis-pipelines.ts` |
+| `mvp-plan.ts` | `MVP_PLAN_SYSTEM_PROMPT` | `analysis-pipelines.ts` |
+| `tech-spec.ts` | `TECH_SPEC_SYSTEM_PROMPT` | `analysis-pipelines.ts` |
+| `prompt-chat.ts` | `PROMPT_CHAT_SYSTEM`, `IDEA_SUMMARY_PROMPT`, `POST_SUMMARY_SYSTEM` | `prompt-chat-config.ts`, `api/prompt-chat/` |
+| `general-chat.ts` | `buildGeneralChatSystemPrompt()` | `openrouter.ts` |
+| `document-edit.ts` | `DOCUMENT_EDIT_SYSTEM_PROMPT`, `buildDocumentEditUserPrompt()` | `api/document-edit/` |
+| `mockups.ts` | `buildMockupPrompt()` | `api/mockups/generate/` |
+| `competitor-search.ts` | `COMPETITOR_SEARCH_SYSTEM_PROMPT`, `buildCompetitorSearchUserPrompt()` | `perplexity.ts` |
+| `app-generation.ts` | `APP_TYPE_PROMPTS`, `buildAppGenerationPrompt()` | `api/generate-app/` |
+| `legacy-fallback.ts` | `LEGACY_ANALYSIS_PROMPTS` | `openrouter.ts` (gap-analysis fallback) |
+| `index.ts` | Barrel re-export of all above | Everything |
+
+### Security Rules
+
+- **Never** interpolate user values directly into prompt strings (`${variable}`).
+- **Always** use `buildSecurePrompt(template, { key: userValue })` — it strips injection patterns and wraps values in `<user_input name="key">` XML delimiters.
+- `sanitizeInput()` is called automatically by `buildSecurePrompt`, but can also be called directly for non-template cases (e.g., `mockups.ts`).
 
 ---
 
