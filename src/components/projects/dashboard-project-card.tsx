@@ -75,7 +75,7 @@ export function DashboardProjectCard({
             {description || "No prompt captured yet."}
           </p>
           <div className="h-2" />
-          <p className="inline-ui-row-gap-2 text-sm ui-font-medium text-white">
+          <p className="inline-flex items-center gap-2 text-sm ui-font-medium text-white">
             Open project <ArrowRight className="ui-icon-16" />
           </p>
         </div>

@@ -141,7 +141,7 @@ function AuthHeader() {
   return (
         <header className="border-b border-border bg-card">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between ui-px-4 md:px-8 lg:px-12 xl:px-16">
-        <Link href="/" className="inline-ui-row-gap-2">
+        <Link href="/" className="inline-flex items-center gap-2">
           <div className={uiStylePresets.authTopIconBadge}>
             <Lightbulb className="h-5 w-5" />
           </div>
