@@ -134,16 +134,16 @@ export function InlineAiEditor({
       >
         <div className="w-[480px] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
           {/* Header with selected text preview */}
-          <div className="px-4 py-3 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+          <div className="ui-px-4 ui-py-3 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
             <div className="flex items-start gap-3">
               <div className="mt-0.5">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Sparkles className="ui-icon-16 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 ui-font-medium mb-1">
                   Selected Text
                 </p>
-                <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed font-mono">
+                <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed ui-font-mono">
                   {selectedText}
                 </p>
               </div>
@@ -152,14 +152,14 @@ export function InlineAiEditor({
 
           {/* Input form - show if no suggestion yet */}
           {!suggestedEdit ? (
-            <form onSubmit={handleSubmit} className="p-4">
+            <form onSubmit={handleSubmit} className="ui-p-4">
               {/* Model selector */}
               <div className="mb-3" ref={dropdownRef}>
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setShowModelDropdown(!showModelDropdown)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition-colors"
+                    className="ui-row-gap-2 px-2.5 ui-py-1_5 text-xs ui-font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition-colors"
                   >
                     <span className="text-gray-400">Model:</span>
                     <span className="text-gray-900">
@@ -182,12 +182,12 @@ export function InlineAiEditor({
                             setShowModelDropdown(false)
                           }}
                           className={cn(
-                            "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between",
+                            "w-full ui-px-3 ui-py-2 text-left text-xs hover:bg-gray-50 transition-colors ui-row-between",
                             selectedModel === model.id && "bg-primary/5"
                           )}
                         >
                           <span className={cn(
-                            "font-medium",
+                            "ui-font-medium",
                             selectedModel === model.id ? "text-primary" : "text-gray-900"
                           )}>
                             {model.name}
@@ -207,34 +207,34 @@ export function InlineAiEditor({
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Describe your edit... (⌘+Enter to submit)"
-                  className="w-full min-h-[80px] px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 bg-white border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full min-h-[80px] ui-px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 bg-white border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   disabled={isLoading}
                 />
                 {isLoading && (
                   <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="font-medium">Generating edit...</span>
+                    <div className="ui-row-gap-2 text-sm text-gray-600">
+                      <Loader2 className="ui-icon-16 animate-spin" />
+                      <span className="ui-font-medium">Generating edit...</span>
                     </div>
                   </div>
                 )}
               </div>
 
               {error && (
-                <div className="mt-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+                <div className="mt-3 ui-px-3 ui-py-2 bg-red-50 border border-red-100 rounded-lg">
                   <p className="text-xs text-red-700">{error}</p>
                 </div>
               )}
 
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-[10px] text-gray-500 font-mono">
+              <div className="mt-3 ui-row-between">
+                <p className="text-[10px] text-gray-500 ui-font-mono">
                   ESC to cancel • ⌘+Enter to submit
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="ui-row-gap-2">
                   <button
                     type="button"
                     onClick={onCancel}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                    className="ui-px-3 ui-py-1_5 text-xs ui-font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                   >
                     Cancel
                   </button>
@@ -242,7 +242,7 @@ export function InlineAiEditor({
                     type="submit"
                     disabled={!prompt.trim() || isLoading}
                     className={cn(
-                      "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
+                      "ui-px-4 ui-py-1_5 text-xs ui-font-semibold rounded-md transition-all",
                       prompt.trim() && !isLoading
                         ? "bg-primary text-white hover:bg-primary/90 shadow-sm hover:shadow"
                         : "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -257,7 +257,7 @@ export function InlineAiEditor({
             // Diff preview - split into scrollable content + fixed buttons
             <>
               {/* Scrollable diff content */}
-              <div className="p-4 overflow-y-auto max-h-[300px]">
+              <div className="ui-p-4 overflow-y-auto max-h-[300px]">
                 <div className="space-y-3">
                   {/* Before */}
                   <div className="relative">
@@ -266,8 +266,8 @@ export function InlineAiEditor({
                       <p className="text-[9px] uppercase tracking-wider text-red-600 font-bold mb-1.5">
                         Original
                       </p>
-                      <div className="px-3 py-2 bg-red-50/50 border border-red-100 rounded-lg">
-                        <p className="text-xs text-gray-600 leading-relaxed line-through decoration-red-300 font-mono whitespace-pre-wrap">
+                      <div className="ui-px-3 ui-py-2 bg-red-50/50 border border-red-100 rounded-lg">
+                        <p className="text-xs text-gray-600 leading-relaxed line-through decoration-red-300 ui-font-mono whitespace-pre-wrap">
                           {selectedText}
                         </p>
                       </div>
@@ -281,8 +281,8 @@ export function InlineAiEditor({
                       <p className="text-[9px] uppercase tracking-wider text-emerald-700 font-bold mb-1.5">
                         Suggested Edit
                       </p>
-                      <div className="px-3 py-2 bg-emerald-50/50 border border-emerald-200 rounded-lg">
-                        <p className="text-xs text-gray-900 leading-relaxed font-mono whitespace-pre-wrap">
+                      <div className="ui-px-3 ui-py-2 bg-emerald-50/50 border border-emerald-200 rounded-lg">
+                        <p className="text-xs text-gray-900 leading-relaxed ui-font-mono whitespace-pre-wrap">
                           {suggestedEdit}
                         </p>
                       </div>
@@ -292,17 +292,17 @@ export function InlineAiEditor({
               </div>
 
               {/* Fixed action buttons at bottom */}
-              <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2 bg-white shrink-0">
+              <div className="ui-px-4 ui-py-3 border-t border-gray-100 ui-row-gap-2 bg-white shrink-0">
                 <button
                   onClick={onCancel}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 ui-px-4 py-2.5 text-sm ui-font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                   Reject
                 </button>
                 <button
                   onClick={handleApply}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm hover:shadow transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 ui-px-4 py-2.5 text-sm ui-font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm hover:shadow transition-all"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Apply Edit

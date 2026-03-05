@@ -46,6 +46,30 @@
   --gray-500: #999999;
   --gray-700: #666666;
   --gray-dark: #333333;
+
+  /* Palette consolidation tokens */
+  --color-text-primary: #0A0A0A;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+  --color-text-accent: #00D4FF;
+  --color-border-subtle: #E0E0E0;
+  --color-border-strong: #E5E5E5;
+  --color-accent-primary: rgba(0,212,255,0.15);
+  --color-accent-primary-light: rgba(0,212,255,0.4);
+  --color-accent-primary-mid: rgba(0,212,255,0.3);
+  --color-accent-primary-soft: rgba(0,212,255,0.2);
+  --color-accent-primary-subtle: rgba(0,212,255,0.1);
+  --color-accent-primary-faint: rgba(0,212,255,0.02);
+  --color-accent-primary-whisper: rgba(0,212,255,0.06);
+  --color-surface-soft: rgba(255,255,255,0.03);
+  --color-surface-mid: rgba(255,255,255,0.06);
+  --color-surface-strong: rgba(255,255,255,0.08);
+  --color-surface-whisper: rgba(255,255,255,0.02);
+  --color-surface-ghost: rgba(255,255,255,0.04);
+  --color-surface-ink-soft: rgba(12,12,20,0.7);
+  --color-surface-ink-strong: rgba(12,12,20,0.9);
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 }
 
 @theme inline {
@@ -77,6 +101,26 @@
   --color-success-bg: var(--success-bg);
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-accent: var(--color-text-accent);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-accent-primary: var(--color-accent-primary);
+  --color-accent-primary-light: var(--color-accent-primary-light);
+  --color-accent-primary-mid: var(--color-accent-primary-mid);
+  --color-accent-primary-soft: var(--color-accent-primary-soft);
+  --color-accent-primary-subtle: var(--color-accent-primary-subtle);
+  --color-accent-primary-faint: var(--color-accent-primary-faint);
+  --color-accent-primary-whisper: var(--color-accent-primary-whisper);
+  --color-surface-ghost: var(--color-surface-ghost);
+  --color-surface-ink-soft: var(--color-surface-ink-soft);
+  --color-surface-ink-strong: var(--color-surface-ink-strong);
+  --color-surface-whisper: var(--color-surface-whisper);
+  --color-surface-soft: var(--color-surface-soft);
+  --color-surface-mid: var(--color-surface-mid);
+  --color-surface-strong: var(--color-surface-strong);
   --font-sans: var(--font-sora);
   --font-mono: var(--font-ibm-plex-mono);
 }
@@ -122,11 +166,94 @@ body {
   outline-offset: 2px;
 }
 
-/* Smooth transitions */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+@layer utilities {
+  .ui-text-sm-muted {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .ui-font-semibold {
+    @apply font-semibold;
+  }
+
+  .ui-font-medium {
+    @apply font-medium;
+  }
+
+  .ui-font-mono {
+    @apply font-mono;
+  }
+
+  .ui-text-xs {
+    @apply text-xs;
+  }
+
+  .ui-tracking-tight {
+    @apply tracking-tight;
+  }
+
+  .ui-kicker-label {
+    @apply text-sm font-semibold uppercase tracking-[0.14em] text-primary;
+  }
+
+  .ui-section-title {
+    @apply text-lg font-bold tracking-tight;
+  }
+
+  .ui-icon-16 {
+    @apply h-4 w-4;
+  }
+
+  .ui-row-gap-3 {
+    @apply flex items-center gap-3;
+  }
+
+  .ui-row-gap-2 {
+    @apply flex items-center gap-2;
+  }
+
+  .ui-row-between {
+    @apply flex items-center justify-between;
+  }
+
+  .ui-stack-2 {
+    @apply space-y-2;
+  }
+
+  .ui-stack-6 {
+    @apply space-y-6;
+  }
+
+  .ui-px-3 {
+    @apply px-3;
+  }
+
+  .ui-px-4 {
+    @apply px-4;
+  }
+
+  .ui-px-6 {
+    @apply px-6;
+  }
+
+  .ui-px-8 {
+    @apply px-8;
+  }
+
+  .ui-py-2 {
+    @apply py-2;
+  }
+
+  .ui-py-3 {
+    @apply py-3;
+  }
+
+  .ui-py-1_5 {
+    @apply py-1.5;
+  }
+
+  .ui-p-4 {
+    @apply p-4;
+  }
 }
 
 /* Gradient text utility */
@@ -274,7 +401,7 @@ body {
 
 .mermaid-diagram .er .entityLabel {
   fill: #111827 !important;
-  font-weight: 600 !important;
+  font-weight: var(--font-weight-semibold) !important;
   font-size: 14px !important;
 }
 

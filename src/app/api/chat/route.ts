@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server"
+import OpenAI from "openai"
+
 import { createClient } from "@/lib/supabase/server"
 import { chatCompletion } from "@/lib/openrouter"
 import { trackAPIMetrics, MetricsTimer, getErrorType, getErrorMessage } from "@/lib/metrics-tracker"
+
+const openrouter = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY || "",
+})
+
+const CHAT_MODEL = process.env.OPENROUTER_CHAT_MODEL || "anthropic/claude-sonnet-4"
+
+type ChatStreamEvent =
+  | { type: "start"; userMessage: unknown }
+  | { type: "token"; content: string }
+  | { type: "done"; userMessage: unknown; assistantMessage: unknown }
+  | { type: "error"; error: string }
+
+function parseBoolean(value: unknown) {
+  return value === true || value === "true"
+}
 
 export async function POST(request: Request) {
   const timer = new MetricsTimer()
@@ -31,6 +50,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     projectId = body.projectId
     const message = body.message
+    const streamEnabled = parseBoolean(body.stream)
 
     if (!projectId || !message) {
       statusCode = 400
@@ -109,6 +129,90 @@ export async function POST(request: Request) {
       content: m.content,
     }))
 
+    if (streamEnabled) {
+      const stream = await openrouter.chat.completions.create({
+        model: CHAT_MODEL,
+        messages: aiMessages,
+        stream: true,
+      })
+
+      const streamBody = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder()
+          const sendEvent = (event: ChatStreamEvent) => {
+            controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`))
+          }
+
+          sendEvent({ type: "start", userMessage })
+          let assistantContent = ""
+
+          try {
+            for await (const chunk of stream) {
+              const token = chunk.choices?.[0]?.delta?.content
+              if (!token) continue
+
+              assistantContent += token
+              sendEvent({ type: "token", content: token })
+            }
+
+            const { data: assistantMessage, error: assistantMsgError } = await supabase
+              .from("messages")
+              .insert({
+                project_id: projectId,
+                role: "assistant",
+                content: assistantContent,
+                metadata: {
+                  source: "openrouter",
+                  model: CHAT_MODEL,
+                  responded_at: new Date().toISOString(),
+                },
+              })
+              .select()
+              .single()
+
+            if (assistantMsgError) {
+              throw new Error(assistantMsgError.message)
+            }
+
+            modelUsed = CHAT_MODEL
+            aiSource = "openrouter"
+
+            if (project.status === "draft") {
+              await supabase
+                .from("projects")
+                .update({ status: "active", updated_at: new Date().toISOString() })
+                .eq("id", projectId)
+            }
+
+            sendEvent({
+              type: "done",
+              userMessage,
+              assistantMessage,
+            })
+          } catch (streamError) {
+            console.error("Chat stream error:", streamError)
+            statusCode = 500
+            errorType = getErrorType(500, streamError)
+            errorMessage = getErrorMessage(streamError)
+            sendEvent({
+              type: "error",
+              error: errorMessage || "Failed to generate chat response",
+            })
+          } finally {
+            controller.close()
+          }
+        },
+      })
+
+      return new Response(streamBody, {
+        headers: {
+          "Content-Type": "application/x-ndjson",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      })
+    }
+
     const aiResult = await chatCompletion(aiMessages, project.description)
 
     // Track AI model and source
@@ -165,7 +269,7 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   } finally {
-    // Track metrics (fire and forget - won't block response)
+    // Track metrics (fire and forget - won't block response
     if (userId) {
       trackAPIMetrics({
         endpoint: "/api/chat",

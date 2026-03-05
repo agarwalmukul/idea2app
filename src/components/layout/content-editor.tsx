@@ -127,6 +127,8 @@ export function ContentEditor({
 
   const resizeStartX = useRef(0)
   const resizeStartWidth = useRef(0)
+  const resizeRafRef = useRef<number | null>(null)
+  const pendingDocumentWidthRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const config = documentConfig[documentType]
@@ -148,10 +150,32 @@ export function ContentEditor({
         MIN_DOCUMENT_WIDTH,
         Math.min(resizeStartWidth.current + delta, maxWidth)
       )
-      setDocumentWidth(newWidth)
+
+      pendingDocumentWidthRef.current = newWidth
+
+      if (resizeRafRef.current === null) {
+        resizeRafRef.current = requestAnimationFrame(() => {
+          resizeRafRef.current = null
+
+          if (pendingDocumentWidthRef.current !== null) {
+            setDocumentWidth(pendingDocumentWidthRef.current)
+            pendingDocumentWidthRef.current = null
+          }
+        })
+      }
     }
 
     const handleMouseUp = () => {
+      if (resizeRafRef.current !== null) {
+        cancelAnimationFrame(resizeRafRef.current)
+        resizeRafRef.current = null
+      }
+
+      if (pendingDocumentWidthRef.current !== null) {
+        setDocumentWidth(pendingDocumentWidthRef.current)
+        pendingDocumentWidthRef.current = null
+      }
+
       setIsResizing(false)
       setResizeEdge(null)
       document.body.style.cursor = ''
@@ -167,6 +191,11 @@ export function ContentEditor({
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
+
+        if (resizeRafRef.current !== null) {
+          cancelAnimationFrame(resizeRafRef.current)
+          resizeRafRef.current = null
+        }
       }
     }
   }, [isResizing, resizeEdge])
@@ -293,14 +322,14 @@ export function ContentEditor({
       <div className="flex h-full flex-col bg-background">
         {/* Header */}
         {documentType !== "prompt" && (
-          <div className="flex items-center justify-between px-10 py-5 border-b border-border">
+          <div className="ui-row-between px-10 py-5 border-b border-border">
             <div className="flex items-center gap-4">
               <config.icon className="h-[18px] w-[18px] text-primary" />
               <div>
-                <h1 className="text-xl font-semibold text-foreground tracking-tight">
+                <h1 className="text-xl ui-font-semibold text-foreground ui-tracking-tight">
                   {config.title}
                 </h1>
-                <p className="text-[11px] text-muted-foreground font-mono">
+                <p className="text-[11px] text-muted-foreground ui-font-mono">
                   {config.subtitle}
                 </p>
               </div>
@@ -311,28 +340,28 @@ export function ContentEditor({
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="ui-row-gap-3">
               {content && (
                 <>
                   <button
                     onClick={handleCopyContent}
-                    className="flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted/50 transition-colors"
+                    className="ui-row-gap-2 ui-px-4 ui-py-2 border border-border rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">{copied ? "Copied!" : "Copy"}</span>
+                    <span className="text-xs ui-font-medium">{copied ? "Copied!" : "Copy"}</span>
                   </button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         disabled={downloadingPdf}
-                        className="flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ui-row-gap-2 ui-px-4 ui-py-2 border border-border rounded-md hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {downloadingPdf ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <Download className="h-3.5 w-3.5" />
                         )}
-                        <span className="text-xs font-medium">
+                        <span className="text-xs ui-font-medium">
                           {downloadingPdf ? "Generating..." : "Download"}
                         </span>
                         <ChevronDown className="h-3 w-3" />
@@ -341,11 +370,11 @@ export function ContentEditor({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={handleDownloadPDF}>
                         <FileDown className="h-3.5 w-3.5 mr-2" />
-                        <span className="text-xs font-medium">PDF</span>
+                        <span className="text-xs ui-font-medium">PDF</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleDownloadMarkdown}>
                         <FileDown className="h-3.5 w-3.5 mr-2" />
-                        <span className="text-xs font-medium">Markdown</span>
+                        <span className="text-xs ui-font-medium">Markdown</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -356,7 +385,7 @@ export function ContentEditor({
                   onClick={() => onGenerateContent(selectedDocModel)}
                   disabled={isGenerating || !canGenerate}
                   className={cn(
-                    "flex items-center gap-2 px-5 py-2 rounded-md transition-colors",
+                    "ui-row-gap-2 px-5 ui-py-2 rounded-md transition-colors",
                     canGenerate
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -367,13 +396,13 @@ export function ContentEditor({
                   ) : (
                     <Sparkles className="h-3.5 w-3.5" />
                   )}
-                  <span className="text-xs font-semibold">
+                  <span className="text-xs ui-font-semibold">
                     {isGenerating ? "Generating..." : content ? `Regenerate (${config.creditCost} credits)` : `Generate (${config.creditCost} credits)`}
                   </span>
                 </button>
                 {!canGenerate && disabledReason && !isGenerating && (
                   <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-10">
-                    <div className="bg-popover text-popover-foreground px-3 py-2 rounded-md text-xs shadow-lg border border-border whitespace-nowrap">
+                    <div className="bg-popover text-popover-foreground ui-px-3 ui-py-2 rounded-md text-xs shadow-lg border border-border whitespace-nowrap">
                       {disabledReason}
                       <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-popover"></div>
                     </div>
@@ -425,7 +454,7 @@ export function ContentEditor({
                       <div className="flex flex-col items-center justify-center py-24">
                         <span className="loader"></span>
                         <div className="mt-6 text-center">
-                          <p className="text-sm font-medium text-foreground mb-2">
+                          <p className="text-sm ui-font-medium text-foreground mb-2">
                             Generating {config.title}...
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -447,7 +476,7 @@ export function ContentEditor({
                     ) : (
                       <div className="text-center py-16">
                         <config.icon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="ui-text-sm-muted mb-2">
                           No {config.title.toLowerCase()} generated yet
                         </p>
                         <p className="text-xs text-muted-foreground">

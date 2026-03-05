@@ -51,6 +51,7 @@ export type FeatureType =
   | "analysis"
   | "app-generation"
   | "project-management"
+  | "mockup"
   | "other"
 
 /**

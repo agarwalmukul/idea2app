@@ -4,14 +4,106 @@ import React, { useEffect, useState, useRef, useMemo, useCallback, useSyncExtern
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { renderMermaid } from "beautiful-mermaid"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 import { Check, X, Maximize2, Minimize2, RotateCcw } from "lucide-react"
 import { SelectionToolbar } from "./selection-toolbar"
 import { InlineAiEditor } from "./inline-ai-editor"
 
 // Unique marker for inline diff - use something very unlikely to appear in content
 const DIFF_MARKER = "\u200B___INLINE_DIFF_MARKER___\u200B"
+
+interface LazySyntaxHighlighterModule {
+  Highlighter: React.ComponentType<{
+    language: string
+    style: Record<string, React.CSSProperties>
+    PreTag: string
+    customStyle: React.CSSProperties
+    children: React.ReactNode
+  }>
+  style: Record<string, React.CSSProperties>
+}
+
+let syntaxHighlighterLoadPromise: Promise<LazySyntaxHighlighterModule> | null = null
+
+function loadSyntaxHighlighterModule(): Promise<LazySyntaxHighlighterModule> {
+  if (!syntaxHighlighterLoadPromise) {
+    syntaxHighlighterLoadPromise = Promise.all([
+      import("react-syntax-highlighter"),
+      import("react-syntax-highlighter/dist/esm/styles/prism"),
+    ]).then(([highlighterModule, styleModule]) => ({
+      Highlighter: highlighterModule.Prism as React.ComponentType<{
+        language: string
+        style: Record<string, React.CSSProperties>
+        PreTag: string
+        customStyle: React.CSSProperties
+        children: React.ReactNode
+      }>,
+      style: styleModule.vscDarkPlus as Record<string, React.CSSProperties>,
+    }))
+  }
+
+  return syntaxHighlighterLoadPromise
+}
+
+function LazySyntaxHighlighter({
+  language,
+  code,
+}: {
+  language: string
+  code: string
+}) {
+  const [module, setModule] = useState<LazySyntaxHighlighterModule | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    loadSyntaxHighlighterModule()
+      .then((loadedModule) => {
+        if (isMounted) {
+          setModule(loadedModule)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLoadFailed(true)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  if (loadFailed) {
+    return (
+      <pre className="ui-overflow-x-auto ui-p-4 ui-bg-[#0F172A] ui-rounded-lg">
+        <code>{code}</code>
+      </pre>
+    )
+  }
+
+  if (!module) {
+    return (
+      <pre className="ui-overflow-x-auto ui-p-4 ui-bg-[#0F172A] ui-rounded-lg">
+        <code>{code}</code>
+      </pre>
+    )
+  }
+
+  return (
+    <module.Highlighter
+      style={module.style}
+      language={language}
+      PreTag="div"
+      customStyle={{
+        margin: 0,
+        borderRadius: "0.5rem",
+        background: "rgba(255,255,255,0.05)",
+      } as React.CSSProperties}
+    >
+      {code}
+    </module.Highlighter>
+  )
+}
 
 interface MarkdownRendererProps {
   content: string
@@ -155,8 +247,8 @@ function MermaidDiagram({ code }: { code: string }) {
 
   if (error) {
     return (
-      <div className="mermaid-wrapper my-4 p-4 bg-[#F9FAFB] dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
-        <pre className="text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap">{code}</pre>
+      <div className="mermaid-wrapper my-4 ui-p-4 bg-[#F9FAFB] dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <pre className="text-sm text-gray-700 dark:text-gray-300 ui-font-mono whitespace-pre-wrap">{code}</pre>
       </div>
     )
   }
@@ -164,7 +256,7 @@ function MermaidDiagram({ code }: { code: string }) {
   return (
     <>
       {/* Compact view - fits within document width */}
-      <div className="mermaid-wrapper my-4 p-4 bg-[#F9FAFB] dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-700 relative group">
+      <div className="mermaid-wrapper my-4 ui-p-4 bg-[#F9FAFB] dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-700 relative group">
         <div
           className="mermaid-diagram w-full overflow-hidden"
           dangerouslySetInnerHTML={{ __html: svg }}
@@ -230,7 +322,7 @@ function MermaidDiagram({ code }: { code: string }) {
             </div>
 
             {/* Zoom controls - bottom center */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 z-10">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 ui-row-gap-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg ui-px-3 ui-py-2 z-10">
               <button
                 onClick={handleZoomOut}
                 disabled={zoom <= 50}
@@ -238,10 +330,10 @@ function MermaidDiagram({ code }: { code: string }) {
                 title="Zoom out"
                 aria-label="Zoom out"
               >
-                <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">−</span>
+                <span className="text-lg ui-font-semibold text-gray-700 dark:text-gray-300">−</span>
               </button>
 
-              <span className="min-w-[3.5rem] text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="min-w-[3.5rem] text-center text-sm ui-font-medium text-gray-700 dark:text-gray-300">
                 {zoom}%
               </span>
 
@@ -252,7 +344,7 @@ function MermaidDiagram({ code }: { code: string }) {
                 title="Zoom in"
                 aria-label="Zoom in"
               >
-                <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">+</span>
+                <span className="text-lg ui-font-semibold text-gray-700 dark:text-gray-300">+</span>
               </button>
 
               {/* Divider */}
@@ -598,23 +690,23 @@ export function MarkdownRenderer({
   const proseClasses = `
     prose prose-sm max-w-none
     [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-gray-900 [&_h1]:border-b [&_h1]:border-gray-200 [&_h1]:pb-2
-    [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-gray-900
-    [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-gray-900
-    [&_h4]:text-base [&_h4]:font-semibold [&_h4]:mb-2 [&_h4]:mt-3 [&_h4]:text-gray-900
+    [&_h2]:text-xl [&_h2]:ui-font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-gray-900
+    [&_h3]:text-lg [&_h3]:ui-font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-gray-900
+    [&_h4]:text-base [&_h4]:ui-font-semibold [&_h4]:mb-2 [&_h4]:mt-3 [&_h4]:text-gray-900
     [&_p]:text-gray-700 [&_p]:mb-3 [&_p]:leading-relaxed
     [&_ul]:my-3 [&_ul]:space-y-1 [&_ul]:pl-6
     [&_ol]:my-3 [&_ol]:space-y-1 [&_ol]:pl-6
     [&_li]:text-gray-700 [&_li]:leading-relaxed
-    [&_strong]:text-gray-900 [&_strong]:font-semibold
+    [&_strong]:text-gray-900 [&_strong]:ui-font-semibold
     [&_em]:text-gray-700 [&_em]:italic
     [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary/80 [&_a]:transition-colors
-    [&_code]:text-primary [&_code]:bg-[rgba(220,38,38,0.06)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
-    [&_pre]:bg-gray-50 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:font-mono
-    [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-gray-900 [&_pre_code]:font-mono [&_pre_code]:whitespace-pre [&_pre_code]:text-sm [&_pre_code]:leading-relaxed
+    [&_code]:text-primary [&_code]:bg-[rgba(220,38,38,0.06)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:ui-font-mono
+    [&_pre]:bg-gray-50 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:rounded-lg [&_pre]:ui-p-4 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:ui-font-mono
+    [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-gray-900 [&_pre_code]:ui-font-mono [&_pre_code]:whitespace-pre [&_pre_code]:text-sm [&_pre_code]:leading-relaxed
     [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500 [&_blockquote]:my-3
     [&_table]:w-full [&_table]:my-3 [&_table]:border-collapse
-    [&_th]:border [&_th]:border-gray-200 [&_th]:bg-[#EFF6FF] [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-800
-    [&_td]:border [&_td]:border-gray-200 [&_td]:px-4 [&_td]:py-2 [&_td]:text-gray-700
+    [&_th]:border [&_th]:border-gray-200 [&_th]:bg-[#EFF6FF] [&_th]:ui-px-4 [&_th]:ui-py-2 [&_th]:text-left [&_th]:ui-font-semibold [&_th]:text-gray-800
+    [&_td]:border [&_td]:border-gray-200 [&_td]:ui-px-4 [&_td]:ui-py-2 [&_td]:text-gray-700
     [&_hr]:border-gray-200 [&_hr]:my-4
   `.trim()
 
@@ -714,18 +806,10 @@ export function MarkdownRenderer({
 
     if (language) {
       return (
-        <SyntaxHighlighter
-          style={vscDarkPlus as Record<string, React.CSSProperties>}
+        <LazySyntaxHighlighter
           language={language}
-          PreTag="div"
-          customStyle={{
-            margin: 0,
-            borderRadius: "0.5rem",
-            background: "rgba(255,255,255,0.05)",
-          } as React.CSSProperties}
-        >
-          {String(children).replace(/\n$/, "")}
-        </SyntaxHighlighter>
+          code={String(children).replace(/\n$/, "")}
+        />
       )
     }
 
@@ -779,14 +863,10 @@ export function MarkdownRenderer({
 
         if (language) {
           return (
-            <SyntaxHighlighter
-              style={vscDarkPlus as Record<string, React.CSSProperties>}
+            <LazySyntaxHighlighter
               language={language}
-              PreTag="div"
-              customStyle={{ margin: 0, borderRadius: "0.5rem", background: "rgba(255,255,255,0.05)" } as React.CSSProperties}
-            >
-              {String(children).replace(/\n$/, "")}
-            </SyntaxHighlighter>
+              code={String(children).replace(/\n$/, "")}
+            />
           )
         }
 

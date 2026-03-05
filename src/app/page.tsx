@@ -1,469 +1,302 @@
-"use client"
-
-import { useState } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Lightbulb,
-  BarChart3,
-  Search,
-  FileText,
-  Code,
-  Rocket,
-  ArrowRight,
-  Zap,
-  Shield,
-  Globe,
-  Check,
-  Sparkles,
-  Menu,
-  X,
-} from "lucide-react"
+import { InspirationProjectsSection } from "@/components/projects/inspiration-projects-section"
+import { uiStylePresets } from "@/lib/ui-style-presets"
+import { ArrowRight, CloudUpload, GitBranch, ListChecks, Rocket, ScanSearch, FileText } from "lucide-react"
 
-const features = [
+const navLinks = [
+  { label: "Features", href: "#features" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Pricing", href: "#pricing" },
+]
+
+const featureCards = [
   {
-    icon: BarChart3,
+    icon: ScanSearch,
     title: "Competitive Analysis",
-    description: "Understand your market landscape, identify competitors, and find your competitive edge.",
-    gradient: "from-[#00d4ff] to-[#0ea5e9]",
-  },
-  {
-    icon: Search,
-    title: "Gap Analysis",
-    description: "Discover untapped opportunities and identify market gaps your idea can fill.",
-    gradient: "from-[#7c3aed] to-[#a855f7]",
+    description: "Map rivals, uncover whitespace, and identify your most defensible angle in minutes.",
   },
   {
     icon: FileText,
     title: "PRD Generation",
-    description: "Generate comprehensive product requirement documents with user stories and specs.",
-    gradient: "from-[#f472b6] to-[#fb923c]",
-  },
-  {
-    icon: Code,
-    title: "Technical Specs",
-    description: "Get detailed technical architecture, stack recommendations, and API designs.",
-    gradient: "from-[#34d399] to-[#00d4ff]",
+    description: "Turn requirements into production-grade docs with acceptance criteria, scopes, and edge cases.",
   },
   {
     icon: Rocket,
     title: "App Generation",
-    description: "Deploy a working prototype - static sites, SPAs, or progressive web apps.",
-    gradient: "from-[#fb923c] to-[#f472b6]",
+    description: "Generate full-stack app scaffolds and implementation plans tailored to your product goals.",
   },
   {
-    icon: Zap,
-    title: "AI-Powered Chat",
-    description: "Chat with AI to refine your idea, get insights, and build a stronger business case.",
-    gradient: "from-[#00d4ff] to-[#7c3aed]",
+    icon: GitBranch,
+    title: "Architecture Mapping",
+    description: "Model services, data flows, and technical tradeoffs before writing expensive code.",
+  },
+  {
+    icon: ListChecks,
+    title: "Task Breakdown",
+    description: "Auto-generate milestones and execution checklists aligned with your timeline.",
+  },
+  {
+    icon: CloudUpload,
+    title: "1-Click Deploy",
+    description: "Ship directly to cloud infrastructure once your plan and app are generated.",
+  },
+]
+
+const steps = [
+  {
+    number: "01",
+    body: "Describe your idea\nTell IDEA2 what you want to build, who it serves, and your business constraints.",
+  },
+  {
+    number: "02",
+    body: "Run AI analysis\nGenerate market research, gap analysis, risks, and confidence scores automatically.",
+  },
+  {
+    number: "03",
+    body: "Generate PRD + technical plan\nProduce implementation-ready documentation, architecture, and work breakdown.",
+  },
+  {
+    number: "04",
+    body: "Deploy with one click\nShip your generated app and iterate with AI guidance from a single workspace.",
   },
 ]
 
 const plans = [
   {
     name: "Free",
-    price: "$0",
-    description: "Get started with basic features",
-    credits: "10",
-    features: ["10 credits/month", "Basic chat support", "Export to Markdown"],
-    highlighted: false,
+    price: "$0/mo",
+    points: ["2 projects", "Basic analysis", "Community support"],
+    tone: "light",
+    cta: "Choose Free",
+    ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
   },
   {
     name: "Starter",
-    price: "$19",
-    description: "Perfect for side projects",
-    credits: "100",
-    features: ["100 credits/month", "Priority chat support", "Export to PDF/DOCX", "1 deployment/month"],
-    highlighted: false,
+    price: "$29/mo",
+    points: ["10 projects", "All analyses", "PRD export"],
+    tone: "light",
+    cta: "Start Starter",
+    ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
   },
   {
     name: "Pro",
-    price: "$49",
-    description: "For serious builders",
-    credits: "500",
-    features: ["500 credits/month", "Priority support", "All export formats", "Unlimited deployments", "Custom domains"],
-    highlighted: true,
+    price: "$79/mo",
+    points: ["Unlimited projects", "App generation", "1-click deploy", "Priority support"],
+    tone: "dark",
+    cta: "Go Pro",
+    ctaClasses: "h-11 bg-primary text-primary-foreground hover:bg-primary/90",
   },
   {
     name: "Enterprise",
-    price: "$199",
-    description: "For teams and agencies",
-    credits: "2,500",
-    features: ["2,500 credits/month", "Dedicated support", "All features", "Team collaboration", "API access", "Custom integrations"],
-    highlighted: false,
+    price: "Custom",
+    points: ["Dedicated VPC", "SSO + RBAC", "Custom integrations"],
+    tone: "light",
+    cta: "Talk to Sales",
+    ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
   },
 ]
 
+const container = "mx-auto w-full max-w-[1320px] px-6 sm:px-8 lg:px-14"
+
+function SectionCard({ children }: { children: ReactNode }) {
+  return <section className={`${container} py-8 md:py-10`}>{children}</section>
+}
+
 export default function LandingPage() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Hero gradient orb */}
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[600px] rounded-full bg-[radial-gradient(ellipse,rgba(0,212,255,0.08)_0%,rgba(124,58,237,0.05)_40%,transparent_70%)]" />
-        {/* Secondary orb */}
-        <div className="absolute top-[40%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.06)_0%,transparent_70%)]" />
-        {/* Grid pattern */}
-        <div className="absolute inset-0 grid-bg opacity-40" />
-      </div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-panel border-b border-[rgba(255,255,255,0.04)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#00d4ff] to-[#7c3aed] flex items-center justify-center shadow-[0_0_15px_rgba(0,212,255,0.3)]">
-                <Lightbulb className="h-4.5 w-4.5 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tight">Idea2App</span>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Features
-              </a>
-              <a href="#pricing" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Pricing
-              </a>
-              <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                How It Works
-              </a>
-            </div>
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm">
-                  Get Started
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
+    <div className="min-h-screen bg-white text-text-primary">
+      <header className="sticky top-0 z-50 border-b border-border-subtle bg-white/95 backdrop-blur-sm">
+        <div className={`${container} ui-row-between h-16`}>
+          <div className="ui-row-gap-3">
+            <div className="h-9 w-9 rounded-sm bg-primary text-white flex items-center justify-center font-bold">I</div>
+            <span className="text-lg font-semibold tracking-[0.01em]">Idea2App</span>
           </div>
-        </div>
 
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full bg-background border-b border-border p-4 shadow-lg animate-fade-in z-40">
-            <div className="flex flex-col space-y-4">
-              <a
-                href="#features"
-                className="text-sm font-medium hover:text-primary transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Features
+          <div className="hidden items-center gap-8 md:flex">
+            {navLinks.map((item) => (
+              <a key={item.label} href={item.href} className="text-sm font-medium text-text-primary hover:text-text-secondary">
+                {item.label}
               </a>
-              <a
-                href="#pricing"
-                className="text-sm font-medium hover:text-primary transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Pricing
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-sm font-medium hover:text-primary transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                How It Works
-              </a>
-              <div className="h-px bg-border w-full my-2" />
-              <div className="flex flex-col gap-2">
-                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full justify-center">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full justify-center">
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
-        )}
-      </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-24 px-4 overflow-hidden">
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
-            <Badge className="mb-8" variant="secondary">
-              <Sparkles className="h-3 w-3 mr-1.5 text-[#00d4ff]" />
-              AI-Powered Business Idea Platform
-            </Badge>
-          </div>
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-8 animate-fade-up leading-[0.9]" style={{ animationDelay: "100ms" }}>
-            Transform Your{" "}
-            <span className="gradient-text">Ideas</span>
-            <br />
-            Into Reality
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up leading-relaxed px-4" style={{ animationDelay: "200ms" }}>
-            From business idea to working application. Get competitive analysis, gap analysis, PRD documents, technical specs, and a deployed prototype &mdash; all powered by AI.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up px-4" style={{ animationDelay: "300ms" }}>
-            <Link href="/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-10 h-14">
-                Start Building
-                <ArrowRight className="h-5 w-5" />
+          <div className="hidden ui-row-gap-3 md:flex">
+            <Link href="/login">
+              <Button variant="outline" className="h-10 border-text-primary px-6 text-sm font-semibold">
+                Sign In
               </Button>
             </Link>
-            <a href="#features" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base px-10 h-14">
-                Learn More
-              </Button>
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-20 max-w-xl mx-auto animate-fade-up px-4" style={{ animationDelay: "400ms" }}>
-            {[
-              { value: "5+", label: "Analysis Types" },
-              { value: "AI", label: "Powered" },
-              { value: "1-Click", label: "Deploy" },
-            ].map((stat) => (
-              <div key={stat.label} className="relative">
-                <p className="text-3xl md:text-4xl font-black gradient-text">{stat.value}</p>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="relative py-24 px-4">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(0,212,255,0.02)] to-transparent pointer-events-none" />
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="text-center mb-16 px-4">
-            <Badge className="mb-5" variant="secondary">
-              <Zap className="h-3 w-3 mr-1.5 text-[#7c3aed]" />
-              Features
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5">
-              Everything You Need to{" "}
-              <span className="gradient-text">Validate</span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Comprehensive tools to analyze, plan, and build your business idea from concept to deployment.
-            </p>
-          </div>
-          <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-4">
-            {features.map((feature, i) => (
-              <div
-                key={feature.title}
-                className="group relative p-6 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(12,12,20,0.5)] backdrop-blur-sm hover:border-[rgba(0,212,255,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,212,255,0.08)] hover:-translate-y-1"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-5 shadow-lg group-hover:shadow-[0_0_20px_rgba(0,212,255,0.2)] transition-shadow duration-300`}>
-                  <feature.icon className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-bold mb-2 tracking-tight text-white">{feature.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="relative py-24 px-4">
-        <div className="max-w-4xl mx-auto relative z-10">
-          <div className="text-center mb-16 px-4">
-            <Badge className="mb-5" variant="secondary">
-              <Rocket className="h-3 w-3 mr-1.5 text-[#f472b6]" />
-              How It Works
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5">
-              From Idea to App in{" "}
-              <span className="gradient-text">Minutes</span>
-            </h2>
-          </div>
-          <div className="space-y-4 px-4">
-            {[
-              {
-                step: "01",
-                title: "Describe Your Idea",
-                description: "Create a project and describe your business idea. Chat with AI to refine it.",
-                icon: Lightbulb,
-                gradient: "from-[#00d4ff] to-[#0ea5e9]",
-              },
-              {
-                step: "02",
-                title: "Get AI-Powered Analysis",
-                description: "Generate competitive analysis, gap analysis, PRDs, and technical specifications.",
-                icon: BarChart3,
-                gradient: "from-[#7c3aed] to-[#a855f7]",
-              },
-              {
-                step: "03",
-                title: "Review & Iterate",
-                description: "Review the generated documents, chat with AI to refine, and iterate on your idea.",
-                icon: FileText,
-                gradient: "from-[#f472b6] to-[#fb923c]",
-              },
-              {
-                step: "04",
-                title: "Deploy Your App",
-                description: "Choose your app type and let AI generate and deploy a working prototype.",
-                icon: Rocket,
-                gradient: "from-[#34d399] to-[#00d4ff]",
-              },
-            ].map((step) => (
-              <div
-                key={step.step}
-                className="group flex flex-col sm:flex-row items-start gap-6 p-6 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(12,12,20,0.4)] backdrop-blur-sm hover:border-[rgba(0,212,255,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,212,255,0.06)]"
-              >
-                <div className="text-5xl font-black gradient-text shrink-0 leading-none mb-2 sm:mb-0">{step.step}</div>
-                <div className="flex-1 pt-1">
-                  <h3 className="text-xl font-bold mb-2 tracking-tight text-white">{step.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">{step.description}</p>
-                </div>
-                <div className={`hidden sm:flex h-12 w-12 rounded-xl bg-gradient-to-br ${step.gradient} items-center justify-center shrink-0 shadow-lg group-hover:shadow-[0_0_20px_rgba(0,212,255,0.2)] transition-shadow duration-300`}>
-                  <step.icon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="relative py-24 px-4">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(124,58,237,0.02)] to-transparent pointer-events-none" />
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="text-center mb-16 px-4">
-            <Badge className="mb-5" variant="secondary">
-              <Shield className="h-3 w-3 mr-1.5 text-[#34d399]" />
-              Pricing
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5">
-              Simple, Transparent{" "}
-              <span className="gradient-text">Pricing</span>
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Start for free, upgrade as you grow.
-            </p>
-          </div>
-          <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 px-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative p-6 rounded-2xl transition-all duration-300 ${plan.highlighted
-                  ? "bg-[rgba(12,12,20,0.7)] border border-[rgba(0,212,255,0.3)] shadow-[0_0_40px_rgba(0,212,255,0.1)] scale-[1.02]"
-                  : "bg-[rgba(12,12,20,0.4)] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.1)]"
-                  }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge>Most Popular</Badge>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold tracking-tight text-white">{plan.name}</h3>
-                <p className="text-sm text-gray-400 mt-1">{plan.description}</p>
-                <div className="mt-5 mb-6">
-                  <span className="text-4xl font-black tracking-tight text-white">{plan.price}</span>
-                  {plan.price !== "$0" && <span className="text-gray-400 text-sm">/mo</span>}
-                </div>
-                <div className="text-xs uppercase tracking-widest text-gray-400 mb-5 pb-5 border-b border-[rgba(255,255,255,0.06)]">
-                  {plan.credits} credits/month
-                </div>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2.5 text-sm text-gray-300">
-                      <div className="h-4 w-4 rounded-full bg-[rgba(52,211,153,0.15)] flex items-center justify-center shrink-0">
-                        <Check className="h-2.5 w-2.5 text-[#34d399]" />
-                      </div>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button
-                    className="w-full"
-                    variant={plan.highlighted ? "default" : "outline"}
-                  >
-                    {plan.price === "$0" ? "Get Started Free" : "Start Free Trial"}
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative py-24 px-4 overflow-hidden">
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          {/* Glow behind CTA */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[radial-gradient(ellipse,rgba(0,212,255,0.08)_0%,rgba(124,58,237,0.05)_40%,transparent_70%)] pointer-events-none max-w-full" />
-          <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5 relative">
-            Ready to Build Your{" "}
-            <span className="gradient-text">Next Big Thing?</span>
-          </h2>
-          <p className="text-lg text-muted-foreground mb-10 relative">
-            Join builders who are using AI to transform their business ideas into reality.
-          </p>
-          <div className="relative">
             <Link href="/signup">
-              <Button size="lg" className="gap-2 text-base px-10 h-14">
-                Get Started for Free
-                <ArrowRight className="h-5 w-5" />
-              </Button>
+              <Button className="h-10 px-6 bg-primary text-primary-foreground">Get Started</Button>
             </Link>
           </div>
         </div>
+      </header>
+
+      <SectionCard>
+        <div className="flex items-center justify-center pt-10 pb-8 md:pt-14">
+          <div className="inline-flex items-center rounded-full border border-border-subtle px-4 py-2 text-xs font-medium tracking-[0.16em] text-text-secondary">
+            AI-Powered Business Idea Platform
+          </div>
+        </div>
+
+        <h1 className="max-w-[980px] mx-auto text-center text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.06em] font-semibold">
+          Transform Your Ideas Into Reality
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-[780px] text-center text-[20px] leading-relaxed text-text-secondary">
+          Go from rough concept to validated plan, generated PRD, and deploy-ready app in one AI-assisted workflow.
+        </p>
+
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <Link href="/signup">
+            <Button className="h-14 px-7 bg-primary text-base font-semibold text-white">Get Started Free</Button>
+          </Link>
+          <Link href="#features">
+            <Button variant="outline" className="h-14 px-7 border-border-subtle text-base font-semibold bg-white text-text-primary">
+              Learn More
+            </Button>
+          </Link>
+        </div>
+
+        <div className="mx-auto mt-12 grid w-full max-w-[780px] gap-4 sm:grid-cols-3">
+          <div className="flex h-[112px] flex-col items-center justify-center border border-text-primary bg-text-primary text-white p-4">
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">5+</p>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#F0F0F0]">Analysis Types</p>
+          </div>
+          <div className={uiStylePresets.landingStatCard}>
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">AI</p>
+            <p className={uiStylePresets.landingFeaturePill}>Powered</p>
+          </div>
+          <div className={uiStylePresets.landingStatCard}>
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">1-Click</p>
+            <p className={uiStylePresets.landingFeaturePill}>Deploy</p>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard>
+        <section id="features" className="py-3">
+          <p className="ui-kicker-label">Features</p>
+          <h2 className="mt-4 text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
+            Everything You Need To Build Smarter
+          </h2>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featureCards.map((item) => (
+              <article key={item.title} className="border border-border-subtle bg-white p-6 md:p-7">
+                <div className="flex h-10 w-10 items-center justify-center bg-text-primary text-white">
+                  <item.icon className="h-[18px] w-[18px]" />
+                </div>
+                <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{item.title}</h3>
+                <p className="mt-4 text-[14px] leading-relaxed text-text-secondary">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </SectionCard>
+
+      <SectionCard>
+        <section id="how-it-works" className="py-3">
+          <p className="ui-kicker-label">How It Works</p>
+          <h2 className="mt-4 max-w-[760px] text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
+            From Idea To Deployed Product
+          </h2>
+
+          <div className="mt-8 space-y-4">
+            {steps.map((step) => (
+              <div key={step.number} className="grid grid-cols-[auto,1fr] gap-5 border border-border-subtle p-5 md:p-6">
+                <p className="text-[36px] leading-none font-semibold tracking-[-0.06em] text-primary">{step.number}</p>
+                <p className="whitespace-pre-line text-[16px] leading-7 text-text-primary">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </SectionCard>
+
+      <SectionCard>
+        <section id="pricing" className="py-3">
+          <p className="ui-kicker-label">Pricing</p>
+          <h2 className="mt-4 max-w-[840px] text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
+            Plans For Builders At Every Stage
+          </h2>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {plans.map((plan) => {
+              const isDark = plan.tone === "dark"
+              return (
+                <article
+                  key={plan.name}
+                  className={`flex min-h-full flex-col border p-7 ${
+                    isDark
+                      ? "border-text-primary bg-text-primary text-white"
+                      : "border-border-subtle bg-white text-text-primary"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-[26px] font-semibold tracking-[-0.02em]">{plan.name}</h3>
+                    {isDark && (
+                      <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.12em] text-white">
+                        Best Value
+                      </span>
+                    )}
+                  </div>
+
+                  <p className={`mt-2 text-4xl font-semibold tracking-[-0.05em] ${isDark ? "text-primary" : "text-text-primary"}`}>
+                    {plan.price}
+                  </p>
+
+                  <div className="mt-8 mb-6 space-y-3 border-b border-[rgba(0,0,0,0.08)] pb-6 dark:border-white/20">
+                    {plan.points.map((point) => (
+                      <p key={point} className={`text-sm ${isDark ? "text-text-muted" : "text-text-secondary"}`}>
+                        {point}
+                      </p>
+                    ))}
+                  </div>
+
+                  <div className="mt-auto">
+                    <Button className={`w-full ${plan.ctaClasses}`}>{plan.cta}</Button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      </SectionCard>
+
+      <SectionCard>
+        <InspirationProjectsSection />
+      </SectionCard>
+
+      <section className="border-t border-border-subtle py-16 md:py-20">
+        <div className={`${container} text-center`}>
+          <h2 className="mx-auto max-w-[860px] text-[clamp(2rem,4.6vw,4rem)] leading-[0.96] tracking-[-0.06em] font-semibold">
+            Ready To Turn Your Next Idea Into A Real Product?
+          </h2>
+          <p className="mx-auto mt-6 max-w-[760px] text-xl text-text-secondary">
+            Join founders and product teams using IDEA2 to research, plan, generate, and launch faster.
+          </p>
+          <Link href="/signup" className="inline-block mt-8">
+            <Button className="h-14 px-8 text-base font-semibold bg-primary text-white">
+              Get Started Free
+              <ArrowRight className="ml-2 ui-icon-16" />
+            </Button>
+          </Link>
+        </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative border-t border-[rgba(255,255,255,0.04)] py-12 px-4 mt-auto">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#00d4ff] to-[#7c3aed] flex items-center justify-center shadow-[0_0_10px_rgba(0,212,255,0.2)]">
-                <Lightbulb className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tight">Idea2App</span>
-            </div>
-            <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-sm text-muted-foreground">
-              <a href="#features" className="hover:text-primary transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-              <a href="#how-it-works" className="hover:text-primary transition-colors">How It Works</a>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Globe className="h-4 w-4" />
-              <Shield className="h-4 w-4" />
-              <span>2026 Idea2App</span>
-            </div>
+      <footer className="border-t border-[#E2E8F0] bg-white">
+        <div className={`${container} ui-row-between h-[88px] flex-wrap gap-5 text-sm`}>
+          <span className="font-mono text-[11px] tracking-[0.05em] text-text-muted">(c) 2026 Idea2App. All rights reserved.</span>
+          <div className="flex items-center gap-5 font-mono text-[11px] tracking-[0.05em] text-text-muted">
+            <a href="#" className={uiStylePresets.subtleLinkHover}>Terms</a>
+            <a href="#" className={uiStylePresets.subtleLinkHover}>Privacy</a>
+            <a href="#" className={uiStylePresets.subtleLinkHover}>Contact</a>
           </div>
         </div>
       </footer>
     </div>
   )
 }
-

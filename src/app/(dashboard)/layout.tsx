@@ -33,8 +33,8 @@ export default async function DashboardLayout({
     <DashboardShell
       user={{
         email: user.email,
-        full_name: profileData?.full_name,
-        avatar_url: profileData?.avatar_url,
+        full_name: profileData?.full_name ?? undefined,
+        avatar_url: profileData?.avatar_url ?? undefined,
       }}
       credits={creditsData?.balance || 0}
     >
