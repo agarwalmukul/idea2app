@@ -32,6 +32,14 @@ interface PromptChatInterfaceProps {
   onIdeaSummary?: (summary: string) => void
 }
 
+type StreamEvent =
+  | { type: "start"; userMessage: Message }
+  | { type: "token"; content: string }
+  | { type: "done"; userMessage: Message; assistantMessage: Message; stage: "refining" | "summarized"; summary: string | null }
+  | { type: "error"; error: string }
+
+const PAGE_SIZE = 40
+
 export function PromptChatInterface({
   projectId,
   projectName,
@@ -47,7 +55,12 @@ export function PromptChatInterface({
   const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(false)
+  const [messagesLoading, setMessagesLoading] = useState(false)
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false)
+  const [earliestCursor, setEarliestCursor] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
   const requestInFlight = useRef(false)
@@ -79,48 +92,31 @@ export function PromptChatInterface({
   }, [])
 
   // Prevent hydration mismatch with Radix UI dropdowns
-  // Prevent hydration mismatch with Radix UI dropdowns
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const startConversation = useCallback(async (overrideIdea?: string) => {
-    if (requestInFlight.current) return
-
-    const ideaToUse = overrideIdea || initialIdea
-    if (!ideaToUse.trim()) return
-
-    requestInFlight.current = true
-    setLoading(true)
-    try {
-      const response = await fetch("/api/prompt-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          message: ideaToUse,
-          model: selectedModel,
-          isInitial: true,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to start conversation")
-      }
-
-      setMessages(dedupeMessages(data.messages || []))
-      setConversationStage("refining")
-    } catch (error) {
-      console.error("Chat error:", error)
-      alert(error instanceof Error ? error.message : "An error occurred")
-    } finally {
-      requestInFlight.current = false
-      setLoading(false)
+  const loadMessages = useCallback(async (options?: { before?: string | null }) => {
+    const before = options?.before
+    const params = new URLSearchParams({
+      projectId,
+      limit: String(PAGE_SIZE),
+    })
+    if (before) {
+      params.set("before", before)
     }
-  }, [initialIdea, projectId, selectedModel, dedupeMessages])
 
+    const response = await fetch(`/api/prompt-chat?${params.toString()}`)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Failed to load messages" }))
+      throw new Error(errorData.error || "Failed to load messages")
+    }
+
+    const data = await response.json()
+    const pageMessages = dedupeMessages(data.messages || [])
+
+    return { pageMessages, hasMore: Boolean(data.hasMore), stage: data.stage || "initial" }
+  }, [projectId, dedupeMessages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -140,35 +136,203 @@ export function PromptChatInterface({
 
   // Load existing messages and start conversation if needed
   useEffect(() => {
-    const loadMessages = async () => {
+    const loadInitialMessages = async () => {
+      setMessagesLoading(true)
       try {
-        const response = await fetch(`/api/prompt-chat?projectId=${projectId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setMessages(dedupeMessages(data.messages || []))
-          setConversationStage(data.stage || "initial")
+        const result = await loadMessages()
 
-          // If no messages and initial idea exists, start the conversation
-          if (data.messages.length === 0 && initialIdea && isFirstLoad) {
-            setIsFirstLoad(false)
-            await startConversation()
-          }
+        setMessages(result.pageMessages)
+        setHasMoreMessages(result.hasMore)
+        setEarliestCursor(result.pageMessages[0]?.created_at || null)
+        setConversationStage(result.stage)
+
+        if (result.pageMessages.length === 0 && initialIdea && isFirstLoad) {
+          setIsFirstLoad(false)
+          await startConversation()
         }
       } catch (error) {
         console.error("Error loading messages:", error)
+      } finally {
+        setMessagesLoading(false)
       }
     }
 
     if (projectId) {
-      loadMessages()
+      loadInitialMessages()
     }
-  }, [projectId, initialIdea, isFirstLoad, startConversation])
+  }, [projectId, initialIdea, isFirstLoad, loadMessages])
 
+  const startConversation = useCallback(async (overrideIdea?: string) => {
+    if (requestInFlight.current) return
+
+    const ideaToUse = overrideIdea || initialIdea
+    if (!ideaToUse.trim()) return
+
+    requestInFlight.current = true
+    setLoading(true)
+    try {
+      const response = await fetch("/api/prompt-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          message: ideaToUse,
+          model: selectedModel,
+          isInitial: true,
+          stream: true,
+        }),
+      })
+
+      if (response.headers.get("content-type")?.includes("application/x-ndjson")) {
+        const tempUserMsg: Message = {
+          id: `temp-${Date.now()}`,
+          role: "user",
+          content: ideaToUse,
+          created_at: new Date().toISOString(),
+        }
+        const assistantTempMsg: Message = {
+          id: `assistant-temp-${Date.now()}`,
+          role: "assistant",
+          content: "",
+          created_at: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, tempUserMsg, assistantTempMsg])
+        await parseStreamResponse(response, tempUserMsg.id, assistantTempMsg.id)
+        return
+      }
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to start conversation")
+      }
+
+      if (data.userMessage && data.assistantMessage) {
+        setMessages(dedupeMessages([
+          data.userMessage as Message,
+          data.assistantMessage as Message,
+        ]))
+      } else if (Array.isArray(data.messages)) {
+        setMessages(dedupeMessages(data.messages))
+      }
+
+      setConversationStage(data.stage || conversationStage)
+    } catch (error) {
+      console.error("Chat error:", error)
+      alert(error instanceof Error ? error.message : "An error occurred")
+    } finally {
+      requestInFlight.current = false
+      setLoading(false)
+    }
+  }, [conversationStage, initialIdea, loadMessages, projectId, selectedModel])
+
+  const loadOlderMessages = async () => {
+    if (!hasMoreMessages || !earliestCursor || isLoadingOlder || loading) return
+
+    const container = messagesContainerRef.current
+    const previousHeight = container?.scrollHeight || 0
+    const previousTop = container?.scrollTop || 0
+
+    try {
+      setMessagesLoading(true)
+      setIsLoadingOlder(true)
+      const result = await loadMessages({ before: earliestCursor })
+      setMessages((prev) => dedupeMessages([...result.pageMessages, ...prev]))
+      setHasMoreMessages(result.hasMore)
+      setEarliestCursor(result.pageMessages[0]?.created_at || earliestCursor)
+      requestAnimationFrame(() => {
+        if (!container) return
+        const delta = container.scrollHeight - previousHeight
+        container.scrollTop = previousTop + Math.max(delta, 0)
+      })
+    } catch (error) {
+      console.error("Error loading older messages:", error)
+    } finally {
+      setMessagesLoading(false)
+      setIsLoadingOlder(false)
+    }
+  }
 
   const handleCopy = async (content: string, id: string) => {
     await navigator.clipboard.writeText(content)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const parseStreamResponse = async (
+    response: Response,
+    tempUserMessageId: string,
+    tempAssistantMessageId: string
+  ) => {
+    if (!response.body) {
+      throw new Error("Stream response had no body")
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+
+    const appendToken = (token: string) => {
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === tempAssistantMessageId
+            ? { ...message, content: `${message.content}${token}` }
+            : message
+        )
+      )
+    }
+
+    const finalizeMessages = (
+      userMessage: Message,
+      assistantMessage: Message,
+      stage: "refining" | "summarized",
+      summary: string | null
+    ) => {
+      setMessages((prev) =>
+        prev.map((message) => {
+          if (message.id === tempUserMessageId) return userMessage
+          if (message.id === tempAssistantMessageId) return assistantMessage
+          return message
+        })
+      )
+      setConversationStage(stage)
+      if (summary && onIdeaSummary) onIdeaSummary(summary)
+    }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split("\n")
+      buffer = lines.pop() || ""
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        const event = JSON.parse(line) as StreamEvent
+
+        if (event.type === "start") {
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === tempUserMessageId ? event.userMessage : message
+            )
+          )
+        } else if (event.type === "token") {
+          appendToken(event.content)
+        } else if (event.type === "done") {
+          finalizeMessages(
+            event.userMessage,
+            event.assistantMessage,
+            event.stage,
+            event.summary
+          )
+          return
+        } else if (event.type === "error") {
+          throw new Error(event.error || "Failed to process response")
+        }
+      }
+    }
   }
 
   const handleSend = async () => {
@@ -187,7 +351,13 @@ export function PromptChatInterface({
       content: userMessage,
       created_at: new Date().toISOString(),
     }
-    setMessages((prev) => dedupeMessages([...prev, tempUserMsg]))
+    const tempAssistantMsg: Message = {
+      id: `assistant-temp-${Date.now()}`,
+      role: "assistant",
+      content: "",
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => dedupeMessages([...prev, tempUserMsg, tempAssistantMsg]))
 
     try {
       const response = await fetch("/api/prompt-chat", {
@@ -198,8 +368,18 @@ export function PromptChatInterface({
           message: userMessage,
           model: selectedModel,
           isInitial: false,
+          stream: true,
         }),
       })
+
+      if (response.headers.get("content-type")?.includes("application/x-ndjson")) {
+        if (!response.ok && response.status !== 200) {
+          const errorText = await response.text()
+          throw new Error(errorText || "Failed to send message")
+        }
+        await parseStreamResponse(response, tempUserMsg.id, tempAssistantMsg.id)
+        return
+      }
 
       const data = await response.json()
 
@@ -207,8 +387,21 @@ export function PromptChatInterface({
         throw new Error(data.error || "Failed to send message")
       }
 
-      // Replace temp message with real messages
-      setMessages(dedupeMessages(data.messages || []))
+      if (data.userMessage && data.assistantMessage) {
+        setMessages((prev) =>
+          dedupeMessages(
+            prev
+              .filter((message) => message.id !== tempUserMsg.id)
+              .filter((message) => message.id !== tempAssistantMsg.id)
+              .concat(data.userMessage as Message, data.assistantMessage as Message)
+          )
+        )
+      } else if (data.messages) {
+        setMessages((prev) =>
+          dedupeMessages(prev.concat(data.messages))
+        )
+      }
+
       setConversationStage(data.stage || conversationStage)
 
       // If we got a summary, notify parent
@@ -217,8 +410,14 @@ export function PromptChatInterface({
       }
     } catch (error) {
       console.error("Chat error:", error)
-      // Remove temp message and show error
-      setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id))
+      setMessages((prev) =>
+        prev.filter((m) => m.id !== tempUserMsg.id && m.id !== tempAssistantMsg.id).concat({
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+          created_at: new Date().toISOString(),
+        })
+      )
       alert(error instanceof Error ? error.message : "An error occurred")
     } finally {
       requestInFlight.current = false
@@ -249,8 +448,47 @@ export function PromptChatInterface({
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
         <div className="max-w-3xl mx-auto px-4 py-6">
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm ui-font-semibold text-foreground/80 tracking-wide">
+                {projectName}
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => messagesContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="text-xs text-muted-foreground hover:text-foreground ui-row-gap-2"
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+                {mounted && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs ui-font-semibold hover:bg-muted/50">
+                        {isFocused ? <Sparkles className="h-3 w-3 text-primary/70" /> : <Sparkles className="h-3 w-3 text-primary/70" />}
+                        <span>{getShortModelName(currentModelName)}</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {AVAILABLE_MODELS.map((model) => (
+                        <DropdownMenuItem
+                          key={model.id}
+                          onClick={() => setSelectedModel(model.id)}
+                          onPointerDown={() => setIsFocused(false)}
+                        >
+                          <span>{model.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+          </div>
+
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center text-center py-16 px-4">
               <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center mb-6 border border-primary/10 shadow-lg shadow-primary/5">
@@ -268,6 +506,25 @@ export function PromptChatInterface({
                   <p className="text-sm text-foreground leading-relaxed">{initialIdea}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {hasMoreMessages && (
+            <div className="mb-4 flex justify-center">
+              <button
+                type="button"
+                onClick={loadOlderMessages}
+                disabled={isLoadingOlder}
+                className="rounded-lg border border-border/70 bg-card px-3 py-1.5 text-xs ui-font-medium text-foreground/80 hover:bg-muted/50 disabled:opacity-60"
+              >
+                {isLoadingOlder ? "Loading..." : "Load earlier messages"}
+              </button>
+            </div>
+          )}
+
+          {messagesLoading && messages.length === 0 && (
+            <div className="flex justify-center py-2">
+              <Spinner size="sm" />
             </div>
           )}
 
@@ -307,10 +564,12 @@ export function PromptChatInterface({
                 {message.role === "assistant" && (
                   <button
                     onClick={() => handleCopy(message.content, message.id)}
-                    className="absolute -bottom-2 right-2 p-1.5 rounded-lg bg-card border border-border/50 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-secondary hover:scale-105 shadow-sm"
+                    className={cn(
+                      "absolute -bottom-3 right-2 p-1.5 rounded-lg bg-background/90 border border-border/40 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:border-primary/50"
+                    )}
                   >
                     {copiedId === message.id ? (
-                      <Check className="h-3 w-3 text-success" />
+                      <Check className="h-3 w-3 text-[#34d399]" />
                     ) : (
                       <Copy className="h-3 w-3 text-muted-foreground" />
                     )}
@@ -319,26 +578,22 @@ export function PromptChatInterface({
               </div>
 
               {message.role === "user" && (
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <User className="h-4 w-4 text-primary/70" />
+                <div className="h-8 w-8 rounded-xl bg-surface-mid border border-surface-strong flex items-center justify-center shrink-0 mt-1">
+                  <User className="h-4 w-4 text-muted-foreground" />
                 </div>
               )}
             </div>
           ))}
 
-          {loading && (
-            <div className="flex gap-3 mb-6 animate-fade-up">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10 shadow-sm">
+          {messagesLoading && messages.length > 0 && (
+            <div className="flex gap-3 justify-start mb-4">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mt-0.5">
                 <Bot className="h-4 w-4 text-primary/70" />
               </div>
-              <div className="bg-card border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                  <span className="text-sm text-muted-foreground">Thinking...</span>
+              <div className="rounded-2xl px-4 py-3 border border-border/50 bg-card">
+                <div className="ui-row-gap-2">
+                  <Spinner size="sm" />
+                  <span className="text-sm ui-text-muted">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -348,125 +603,38 @@ export function PromptChatInterface({
         </div>
       </div>
 
-      {/* Modern Composer Bar */}
-      <div className="px-4 pb-4 pt-2 bg-gradient-to-t from-background via-background to-transparent">
-        <div className="max-w-3xl mx-auto px-4">
-          <div
-            ref={composerRef}
-            className={cn(
-              "relative rounded-2xl border bg-card shadow-lg transition-all duration-300",
-              isFocused
-                ? "border-primary/40 shadow-xl shadow-primary/5 ring-4 ring-primary/5"
-                : "border-border/50 shadow-md hover:shadow-lg hover:border-border"
-            )}
-          >
-              {/* Top Row: Model Selector */}
-              <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                {mounted ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/80 hover:bg-secondary border border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
-                        <div className="h-4 w-4 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                          <Sparkles className="h-2 w-2 text-primary-foreground" />
-                        </div>
-                        <span className="text-xs font-medium text-foreground/80 group-hover:text-foreground">
-                          {getShortModelName(currentModelName)}
-                        </span>
-                        <ChevronDown className="h-3 w-3 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-64 p-2 rounded-xl border-border/50 shadow-xl">
-                      <div className="px-2 py-1.5 mb-1">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Select Model</p>
-                      </div>
-                      {AVAILABLE_MODELS.map((model) => (
-                        <DropdownMenuItem
-                          key={model.id}
-                          onClick={() => setSelectedModel(model.id)}
-                          className={cn(
-                            "flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-                            selectedModel === model.id ? "bg-primary/5" : ""
-                          )}
-                        >
-                          <div className={cn(
-                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
-                            selectedModel === model.id
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-foreground/60"
-                          )}>
-                            <Sparkles className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-foreground">{model.name}</span>
-                              {selectedModel === model.id && (
-                                <Check className="h-4 w-4 text-primary shrink-0" />
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground line-clamp-1">{model.description}</span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/50">
-                    <div className="h-4 w-4 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                      <Sparkles className="h-2 w-2 text-primary-foreground" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground/80">{getShortModelName(currentModelName)}</span>
-                    <ChevronDown className="h-3 w-3 text-muted-foreground/60" />
-                  </div>
-                )}
-
-                {/* Keyboard hint - subtle */}
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
-                  <kbd className="px-1.5 py-0.5 rounded bg-secondary/80 font-mono">↵</kbd>
-                  <span>to send</span>
-                </div>
-              </div>
-
-              {/* Textarea */}
-              <div className="relative px-4 pb-3">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  placeholder="Start with your idea (problem, target user, or rough concept). I&apos;ll ask questions to refine it and guide you toward research + PRD."
-                  className="w-full bg-transparent text-sm resize-none focus-visible:outline-none placeholder:text-muted-foreground/40 min-h-[48px] max-h-[160px] py-2 pr-14"
-                  rows={1}
-                  disabled={loading}
-                />
-
-                {/* Send Button - positioned inside */}
-                <button
-                  onClick={handleSend}
-                  disabled={loading || !input.trim()}
-                  className={cn(
-                    "absolute right-4 bottom-3 h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300",
-                    input.trim() && !loading
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-105 active:scale-95"
-                      : "bg-secondary text-muted-foreground/40 cursor-not-allowed"
-                  )}
-                >
-                  {loading ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-                  )}
-                </button>
-              </div>
+      {/* Input */}
+      <div className="border-t border-border/70 p-4 bg-card/40">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-end gap-3" ref={composerRef}>
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder="Type your business idea update or question..."
+                className="w-full rounded-2xl border border-surface-strong bg-background px-4 py-3 pr-12 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-primary-light)] focus-visible:ring-offset-0 focus-visible:border-[var(--color-accent-primary-mid)] placeholder:text-text-secondary min-h-[48px] max-h-[160px]"
+                rows={1}
+                disabled={loading}
+              />
             </div>
-
-            {/* Bottom hint */}
-            <p className="text-[11px] text-muted-foreground/40 mt-2.5 text-center">
-              Shift + Enter for new line. Answer follow-up questions to unlock better research and PRD output.
-            </p>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={loading || !input.trim() || requestInFlight.current}
+              className={cn(
+                "h-12 w-12 rounded-2xl shrink-0 ui-row-gap-2 bg-primary text-primary-foreground transition-colors",
+                (loading || !input.trim() || requestInFlight.current) && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              {loading ? <Spinner size="sm" /> : <Sparkles className="h-4 w-4" />}
+            </button>
           </div>
         </div>
       </div>
+    </div>
   )
 }

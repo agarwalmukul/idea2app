@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: MockupParams) {
 
     // Verify ownership and update
     const { data: mockup, error } = await supabase
-      .from("mockups")
+      .from("mockups" as any)
       .update({
         content,
         updated_at: new Date().toISOString(),
@@ -54,7 +54,7 @@ export async function PATCH(request: Request, { params }: MockupParams) {
 // Helper function to verify project ownership
 async function getUserProjectId(supabase: any, userId: string, mockupId: string): Promise<string | null> {
   const { data: mockup } = await supabase
-    .from("mockups")
+    .from("mockups" as any)
     .select("project_id")
     .eq("id", mockupId)
     .single()

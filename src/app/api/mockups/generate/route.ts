@@ -121,7 +121,8 @@ export async function POST(request: Request) {
     }
 
     // Store the mockup in database
-    await supabase.from("mockups").insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("mockups").insert({
       project_id: projectId,
       content,
       model_used: selectedModel,

@@ -244,6 +244,15 @@ function generateHTMLTemplate(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName} - ${analysisType}</title>
   <style>
+    :root {
+      --font-weight-bold: 700;
+      --font-weight-semibold: 600;
+      --accent-color: #00d4ff;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666;
+      --text-muted: #999;
+    }
+
     @page {
       margin: 20mm;
       size: A4;
@@ -259,21 +268,21 @@ function generateHTMLTemplate(
       font-family: system-ui, -apple-system, sans-serif;
       font-size: 14px;
       line-height: 1.6;
-      color: #1a1a1a;
+      color: var(--text-primary);
       background: #ffffff;
     }
 
     /* Header */
     .header {
       margin-bottom: 30px;
-      border-bottom: 2px solid #00d4ff;
+      border-bottom: 2px solid var(--accent-color);
       padding-bottom: 20px;
     }
 
     .header h1 {
       margin: 0 0 10px 0;
       font-size: 26px;
-      color: #1a1a1a;
+      color: var(--text-primary);
     }
 
     .header .analysis-type {
@@ -294,31 +303,31 @@ function generateHTMLTemplate(
       font-size: 24px;
       margin: 30px 0 15px 0;
       color: #1a1a1a;
-      font-weight: 700;
+      font-weight: var(--font-weight-bold);
       page-break-after: avoid;
     }
 
     .content h2 {
       font-size: 20px;
       margin: 25px 0 12px 0;
-      color: #1a1a1a;
-      font-weight: 600;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
       page-break-after: avoid;
     }
 
     .content h3 {
       font-size: 18px;
       margin: 20px 0 10px 0;
-      color: #1a1a1a;
-      font-weight: 600;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
       page-break-after: avoid;
     }
 
     .content h4 {
       font-size: 16px;
       margin: 15px 0 8px 0;
-      color: #1a1a1a;
-      font-weight: 600;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
       page-break-after: avoid;
     }
 
@@ -340,7 +349,7 @@ function generateHTMLTemplate(
 
     .content strong {
       color: #000;
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold);
     }
 
     .content code {
@@ -349,7 +358,7 @@ function generateHTMLTemplate(
       border-radius: 4px;
       font-family: 'Courier New', Consolas, monospace;
       font-size: 12px;
-      color: #1a1a1a;
+      color: var(--text-primary);
       border: 1px solid #e0e0e0;
     }
 
@@ -374,7 +383,7 @@ function generateHTMLTemplate(
     }
 
     .content blockquote {
-      border-left: 4px solid #00d4ff;
+      border-left: 4px solid var(--accent-color);
       padding-left: 15px;
       margin: 15px 0;
       color: #555;
@@ -397,11 +406,11 @@ function generateHTMLTemplate(
 
     .content th {
       background: #f5f5f5;
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold);
     }
 
     .content a {
-      color: #00d4ff;
+      color: var(--accent-color);
       text-decoration: none;
     }
 
