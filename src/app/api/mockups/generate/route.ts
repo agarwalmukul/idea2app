@@ -5,6 +5,13 @@ import OpenAI from "openai"
 import { trackAPIMetrics, MetricsTimer, getErrorType, getErrorMessage } from "@/lib/metrics-tracker"
 import { buildMockupPrompt } from "@/lib/prompts"
 
+const encoder = new TextEncoder()
+
+function createStreamSender(controller: ReadableStreamDefaultController) {
+  return (event: object) =>
+    controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"))
+}
+
 export const maxDuration = 300 // 5 min — AI generation can be slow
 
 export async function POST(request: Request) {
@@ -16,6 +23,7 @@ export async function POST(request: Request) {
   let modelUsed: string | undefined
   let userId: string | undefined
   let projectId: string | undefined
+  let isStreaming = false
 
   try {
     const supabase = await createClient()
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     projectId = body.projectId
-    const { mvpPlan, projectName, model } = body
+    const { mvpPlan, projectName, model, stream: streamRequested } = body
 
     if (!projectId || !mvpPlan || !projectName) {
       statusCode = 400
@@ -84,6 +92,109 @@ export async function POST(request: Request) {
     }
 
     creditsConsumed = creditCost
+
+    // ─── Streaming path ─────────────────────────────────────────────────
+    if (streamRequested === true) {
+      isStreaming = true
+
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          const send = createStreamSender(controller)
+
+          try {
+            send({ type: "stage", message: "Analyzing MVP plan...", step: 1, totalSteps: 3 })
+
+            const openrouterClient = new OpenAI({
+              baseURL: "https://openrouter.ai/api/v1",
+              apiKey: process.env.OPENROUTER_API_KEY || "",
+            })
+
+            send({ type: "stage", message: "Generating UI mockups...", step: 2, totalSteps: 3 })
+
+            const streamResp = await openrouterClient.chat.completions.create({
+              model: selectedModel,
+              messages: [{ role: "user", content: buildMockupPrompt(mvpPlan, projectName) }],
+              max_tokens: 16384,
+              stream: true,
+            })
+
+            let generatedContent = ""
+            for await (const chunk of streamResp) {
+              const token = chunk.choices?.[0]?.delta?.content ?? ""
+              if (token) {
+                generatedContent += token
+                send({ type: "token", content: token })
+              }
+            }
+
+            if (!generatedContent) throw new Error("No content returned from OpenRouter")
+
+            send({ type: "stage", message: "Saving mockups...", step: 3, totalSteps: 3 })
+            modelUsed = selectedModel
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase as any).from("mockups").insert({
+              project_id: projectId!,
+              content: generatedContent,
+              model_used: selectedModel,
+              metadata: { source: "openrouter", model: selectedModel, generated_at: new Date().toISOString() },
+            })
+
+            await supabase
+              .from("projects")
+              .update({ status: "active", updated_at: new Date().toISOString() })
+              .eq("id", projectId!)
+
+            send({ type: "done", model: selectedModel })
+
+            // Track metrics for successful streaming request
+            trackAPIMetrics({
+              endpoint: `/api/mockups/generate`,
+              method: "POST",
+              featureType: "mockup",
+              userId: userId!,
+              projectId: projectId ?? null,
+              statusCode: 200,
+              responseTimeMs: timer.getElapsedMs(),
+              creditsConsumed,
+              modelUsed: selectedModel,
+              aiSource: "openrouter",
+              errorType: undefined,
+              errorMessage: undefined,
+            })
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Mockup generation failed"
+            send({ type: "error", message: msg })
+            statusCode = 500
+            errorType = "generation_error"
+            errorMessage = msg
+
+            // Track metrics for failed streaming request
+            trackAPIMetrics({
+              endpoint: `/api/mockups/generate`,
+              method: "POST",
+              featureType: "mockup",
+              userId: userId!,
+              projectId: projectId ?? null,
+              statusCode: 500,
+              responseTimeMs: timer.getElapsedMs(),
+              creditsConsumed,
+              modelUsed: undefined,
+              aiSource: "openrouter",
+              errorType: "generation_error",
+              errorMessage: msg,
+            })
+          } finally {
+            controller.close()
+          }
+        },
+      })
+
+      return new Response(readableStream, {
+        headers: { "Content-Type": "application/x-ndjson" },
+      })
+    }
+    // ─── End streaming path ─────────────────────────────────────────────
 
     // Generate mockup using OpenRouter
     const openrouter = new OpenAI({
@@ -153,7 +264,7 @@ export async function POST(request: Request) {
     )
   } finally {
     // Track metrics (fire and forget - won't block response)
-    if (userId) {
+    if (!isStreaming && userId) {
       trackAPIMetrics({
         endpoint: `/api/mockups/generate`,
         method: "POST",
