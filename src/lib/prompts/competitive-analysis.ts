@@ -75,7 +75,9 @@ TONE
 MARKDOWN QUALITY BAR
 - Maintain heading hierarchy: H1 for document title, H2 for sections, H3 for nested blocks
 - Keep bullets concise and parallel in style
-- Ensure tables are valid markdown tables with aligned columns`
+- Ensure tables are valid markdown tables with aligned columns
+- Format all external references as markdown links: [Label](https://example.com)
+- Do not leave raw bare URLs in the final output`
 
 const COMPETITIVE_ANALYSIS_USER_TEMPLATE = `Please analyze the competitive landscape for the following business:
 
