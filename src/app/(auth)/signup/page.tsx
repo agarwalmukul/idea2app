@@ -132,9 +132,9 @@ function SignupScreen() {
               </p>
             </div>
           </aside>
-          <div className="flex w-full flex-1 justify-center">
-            <div className="w-full max-w-[880px] lg:h-full lg:flex lg:flex-col">
-              <header className="h-[104px] ui-px-6 py-5">
+          <div className="flex w-full flex-1">
+            <div className="w-full lg:h-full lg:flex lg:flex-col">
+              <header className="h-[104px] w-full ui-px-6 py-5">
                 <Link href="/" className="inline-flex h-full items-center gap-3">
                   <div className={uiStylePresets.authIconCircle}>
                     <Lightbulb className="ui-icon-16" />
@@ -142,7 +142,7 @@ function SignupScreen() {
                   <span className="text-lg ui-font-semibold tracking-[0.05em]">Idea2App</span>
                 </Link>
               </header>
-              <div className="flex-1 flex items-center">
+              <div className="flex-1 flex items-center justify-center px-6">
                 <Card className={uiStylePresets.authCardContainer}>
                 <CardHeader className="ui-stack-2 ui-px-8 pt-8">
                   <CardTitle className="text-3xl tracking-[-0.02em]">Create account</CardTitle>
