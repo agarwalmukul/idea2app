@@ -3,6 +3,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { InspirationProjectsSection } from "@/components/projects/inspiration-projects-section"
 import { uiStylePresets } from "@/lib/ui-style-presets"
+import { PRICING_CARD_TOKENS, TOKEN_VALUE_CENTS, estimateFullReportTokens } from "@/lib/token-economics"
+import { formatPrice } from "@/lib/utils"
 import { ArrowRight, CloudUpload, GitBranch, ListChecks, Rocket, ScanSearch, FileText } from "lucide-react"
 
 const navLinks = [
@@ -63,11 +65,20 @@ const steps = [
   },
 ]
 
+const tokenUsdLabel = formatPrice(TOKEN_VALUE_CENTS)
+const fullReportTokensFast = estimateFullReportTokens("grok-4-1-fast")
+const fullReportTokensBalanced = estimateFullReportTokens("anthropic/claude-sonnet-4")
+const fullReportTokensThinking = estimateFullReportTokens("openai/gpt-5-mini")
+
 const plans = [
   {
     name: "Free",
     price: "$0/mo",
-    points: ["2 projects", "Basic analysis", "Community support"],
+    points: [
+      `${PRICING_CARD_TOKENS.free} tokens included`,
+      `~${Math.floor(PRICING_CARD_TOKENS.free / fullReportTokensFast)} full report (fast model)`,
+      "Community support",
+    ],
     tone: "light",
     cta: "Choose Free",
     ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
@@ -75,7 +86,11 @@ const plans = [
   {
     name: "Starter",
     price: "$29/mo",
-    points: ["10 projects", "All analyses", "PRD export"],
+    points: [
+      `${PRICING_CARD_TOKENS.starter} tokens monthly`,
+      `~${Math.floor(PRICING_CARD_TOKENS.starter / fullReportTokensBalanced)} full reports (balanced)`,
+      "PRD + tech spec export",
+    ],
     tone: "light",
     cta: "Start Starter",
     ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
@@ -83,7 +98,11 @@ const plans = [
   {
     name: "Pro",
     price: "$79/mo",
-    points: ["Unlimited projects", "App generation", "1-click deploy", "Priority support"],
+    points: [
+      `${PRICING_CARD_TOKENS.pro} tokens monthly`,
+      `~${Math.floor(PRICING_CARD_TOKENS.pro / fullReportTokensThinking)} full reports (thinking)`,
+      "App generation + priority support",
+    ],
     tone: "dark",
     cta: "Go Pro",
     ctaClasses: "h-11 bg-primary text-primary-foreground hover:bg-primary/90",
@@ -91,7 +110,7 @@ const plans = [
   {
     name: "Enterprise",
     price: "Custom",
-    points: ["Dedicated VPC", "SSO + RBAC", "Custom integrations"],
+    points: ["Custom token pools", "Dedicated VPC", "SSO + RBAC", "Custom integrations"],
     tone: "light",
     cta: "Talk to Sales",
     ctaClasses: "h-11 border border-text-primary bg-white text-text-primary hover:bg-muted",
@@ -222,6 +241,9 @@ export default function LandingPage() {
           <h2 className="mt-4 max-w-[840px] text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
             Plans For Builders At Every Stage
           </h2>
+          <p className="mt-4 max-w-[760px] text-sm text-text-secondary">
+            1 token = {tokenUsdLabel}. Full report estimate: fast {fullReportTokensFast} tokens, balanced {fullReportTokensBalanced} tokens, thinking {fullReportTokensThinking} tokens.
+          </p>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {plans.map((plan) => {

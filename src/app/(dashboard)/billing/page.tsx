@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { formatPrice } from "@/lib/utils"
+import { BASE_ACTION_TOKENS, TOKEN_VALUE_CENTS, estimateFullReportTokens } from "@/lib/token-economics"
 import { Check, Coins, Zap, CreditCard, Crown } from "lucide-react"
 
 interface Plan {
@@ -141,6 +142,11 @@ export default function BillingPage() {
     }
   }
 
+  const tokenValueLabel = formatPrice(TOKEN_VALUE_CENTS)
+  const fullReportFast = estimateFullReportTokens("grok-4-1-fast")
+  const fullReportBalanced = estimateFullReportTokens("anthropic/claude-sonnet-4")
+  const fullReportThinking = estimateFullReportTokens("openai/gpt-5-mini")
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -154,7 +160,7 @@ export default function BillingPage() {
       <div>
         <h1 className="text-3xl font-black tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your subscription and credits
+          Manage your subscription and token balance
         </p>
       </div>
 
@@ -200,7 +206,7 @@ export default function BillingPage() {
                 <Coins className="h-5 w-5 text-[#a78bfa]" />
               </div>
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Credit Balance
+Token Balance
               </CardTitle>
             </div>
           </CardHeader>
@@ -211,7 +217,7 @@ export default function BillingPage() {
               ) : credits.toLocaleString()}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Credits are used for analyses and app generation
+              Tokens are used for analyses and app generation (1 token = {tokenValueLabel})
             </p>
           </CardContent>
         </Card>
@@ -311,33 +317,43 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Credit Costs */}
+      {/* Token Costs */}
       <Card>
         <CardHeader>
-          <CardTitle>Credit Usage</CardTitle>
-          <CardDescription>How credits are consumed for each action</CardDescription>
+          <CardTitle>Token Usage</CardTitle>
+          <CardDescription>Base token costs by action (before model multiplier)</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { name: "Chat Message", credits: 1 },
-              { name: "Competitive Analysis", credits: 5 },
-              { name: "Gap Analysis", credits: 5 },
-              { name: "PRD Document", credits: 10 },
-              { name: "Technical Spec", credits: 10 },
-              { name: "Static Website", credits: 50 },
-              { name: "Dynamic Website", credits: 100 },
-              { name: "Single Page App", credits: 150 },
-              { name: "Progressive Web App", credits: 200 },
+              { name: "Chat Message", action: "chat" },
+              { name: "Competitive Analysis", action: "competitive-analysis" },
+              { name: "Gap Analysis", action: "gap-analysis" },
+              { name: "PRD Document", action: "prd" },
+              { name: "Technical Spec", action: "tech-spec" },
+              { name: "Static Website", action: "app-static" },
+              { name: "Dynamic Website", action: "app-dynamic" },
+              { name: "Single Page App", action: "app-spa" },
+              { name: "Progressive Web App", action: "app-pwa" },
             ].map((item) => (
               <div
                 key={item.name}
                 className="flex items-center justify-between p-3.5 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(0,212,255,0.15)] hover:bg-[rgba(0,212,255,0.03)] transition-all duration-200"
               >
                 <span className="text-sm font-medium">{item.name}</span>
-                <Badge variant="outline" className="font-mono text-xs">{item.credits} credits</Badge>
+                <Badge variant="outline" className="font-mono text-xs">{BASE_ACTION_TOKENS[item.action as keyof typeof BASE_ACTION_TOKENS]} tokens</Badge>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-xl border border-[rgba(255,255,255,0.08)] p-4 text-sm text-muted-foreground">
+            <p>Model multiplier examples (full report = Competitive + PRD + MVP + Tech Spec):</p>
+            <ul className="mt-2 space-y-1">
+              <li>Fast model: ~{fullReportFast} tokens</li>
+              <li>Balanced model: ~{fullReportBalanced} tokens</li>
+              <li>Thinking model: ~{fullReportThinking} tokens</li>
+            </ul>
+            <p className="mt-2">Token value is configurable via <code>TOKEN_VALUE_CENTS</code> / <code>NEXT_PUBLIC_TOKEN_VALUE_CENTS</code> (current: {tokenValueLabel}).</p>
           </div>
         </CardContent>
       </Card>

@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { BASE_ACTION_TOKENS } from '@/lib/token-economics'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -33,20 +34,7 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDate(date)
 }
 
-export const CREDIT_COSTS = {
-  'competitive-analysis': 5,
-  'gap-analysis': 5,
-  'prd': 10,
-  'mvp-plan': 10,
-  'tech-spec': 10,
-  'mockup': 15,
-  'app-static': 50,
-  'app-dynamic': 100,
-  'app-spa': 150,
-  'app-pwa': 200,
-  'chat': 1,
-  'document-edit': 1,
-} as const
+export const CREDIT_COSTS = BASE_ACTION_TOKENS
 
 export type AnalysisType = 'competitive-analysis' | 'gap-analysis' | 'prd' | 'mvp-plan' | 'tech-spec' | 'mockup'
 export type AppType = 'static' | 'dynamic' | 'spa' | 'pwa'
