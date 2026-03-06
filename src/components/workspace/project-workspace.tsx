@@ -6,8 +6,7 @@ import Link from "next/link"
 import { DocumentNav, DocumentType } from "@/components/layout/document-nav"
 import { ContentEditor } from "@/components/layout/content-editor"
 import { Header } from "@/components/layout/header"
-import { parseDocumentStream } from "@/lib/parse-document-stream"
-import type { StreamStage } from "@/lib/parse-document-stream"
+import { parseDocumentStream, type StreamStage } from "@/lib/parse-document-stream"
 
 
 interface Project {
@@ -624,6 +623,7 @@ export function ProjectWorkspace({
   const handleGenerateContent = async (model?: string) => {
     const generatingType = activeDocument
     let didGenerate = false
+    let wasStreaming = false
 
     // Set generating state for the active document
     setGeneratingDocuments(prev => ({ ...prev, [generatingType]: true }))
@@ -715,6 +715,8 @@ export function ProjectWorkspace({
       const contentType = response.headers.get("Content-Type") ?? ""
       if (contentType.includes("application/x-ndjson")) {
         // Streaming path: process NDJSON events live
+        wasStreaming = true
+        let streamError: string | undefined
         await parseDocumentStream(response, {
           onStage: (stage) => {
             setStreamStages(prev => {
@@ -729,12 +731,12 @@ export function ProjectWorkspace({
             setStreamCurrentStep(stage.step)
           },
           onToken: (content) => setStreamContent(prev => prev + content),
-          onDone: () => { didGenerate = true },
+          onDone: (_model) => { didGenerate = true },
           onError: (message) => {
-            console.error("[Stream] Document generation error:", message)
-            alert(message)
+            streamError = message
           },
         })
+        if (streamError) throw new Error(streamError)
       } else {
         // Non-streaming JSON path (deploy or fallback)
         didGenerate = true
@@ -750,16 +752,20 @@ export function ProjectWorkspace({
       // Clear generation state once request finishes
       setGeneratingDocuments(prev => ({ ...prev, [generatingType]: false }))
       saveGeneratingState(generatingType, false)
-      clearStreamState()
+      // clearStreamState() is called after router.refresh() in the success path below
     }
 
     if (!didGenerate) return
 
-    // Wait a moment for database transaction to complete
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Refresh data while keeping UI state (e.g., active tab) intact
-    router.refresh()
+    if (wasStreaming) {
+      // DB save already committed before server sent 'done'; no delay needed
+      router.refresh()
+      clearStreamState()
+    } else {
+      // Wait a moment for database transaction to complete
+      await new Promise(resolve => setTimeout(resolve, 500))
+      router.refresh()
+    }
   }
 
   const handleUpdateDescription = async (description: string) => {
