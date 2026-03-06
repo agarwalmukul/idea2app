@@ -28,6 +28,7 @@ export async function parseDocumentStream(
   let buffer = ""
 
   try {
+    let receivedDone = false
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -52,6 +53,7 @@ export async function parseDocumentStream(
           } else if (event.type === "token") {
             callbacks.onToken(event.content)
           } else if (event.type === "done") {
+            receivedDone = true
             callbacks.onDone(event.model)
             return
           } else if (event.type === "error") {
@@ -60,8 +62,15 @@ export async function parseDocumentStream(
           }
         } catch {
           // Skip malformed JSON lines — partial writes are safe to ignore
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[parseDocumentStream] Skipped malformed NDJSON line:", trimmed)
+          }
         }
       }
+    }
+    // Stream ended without a done event — signal error so the caller can clean up
+    if (!receivedDone) {
+      callbacks.onError("Stream ended unexpectedly")
     }
   } finally {
     reader.releaseLock()

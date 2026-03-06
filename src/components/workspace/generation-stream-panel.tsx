@@ -26,11 +26,15 @@ export function GenerationStreamPanel({
         <p className="text-sm font-medium text-foreground mb-3">
           Generating {documentTitle}...
         </p>
-        {stages.map((stage) => {
-          const isDone = stage.step < currentStep
-          const isActive = stage.step === currentStep
+        {stages.length > 0 && Array.from(
+          { length: stages[stages.length - 1].totalSteps },
+          (_, i) => i + 1
+        ).map((stepNum) => {
+          const knownStage = stages.find(s => s.step === stepNum)
+          const isDone = stepNum < currentStep
+          const isActive = stepNum === currentStep
           return (
-            <div key={stage.step} className="flex items-center gap-3">
+            <div key={stepNum} className="flex items-center gap-3">
               {isDone ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
               ) : isActive ? (
@@ -47,7 +51,7 @@ export function GenerationStreamPanel({
                     : "text-sm text-muted-foreground/50"
                 }
               >
-                {stage.message}
+                {knownStage?.message ?? "..."}
               </span>
             </div>
           )

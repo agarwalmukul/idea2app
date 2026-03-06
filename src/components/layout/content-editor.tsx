@@ -458,6 +458,8 @@ export function ContentEditor({
                         <div className="w-1 h-full bg-border group-hover:bg-primary transition-colors rounded-full" />
                       </div>
                     </div>
+                    {/* isGenerating is the sole render gate — streamStages is intentionally
+                        ignored when isGenerating is false, preventing stale stage UI */}
                     {isGenerating ? (
                       streamStages && streamStages.length > 0 ? (
                         <GenerationStreamPanel
