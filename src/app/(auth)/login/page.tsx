@@ -94,7 +94,7 @@ function LoginForm() {
               </p>
             </div>
           </aside>
-          <div className="flex w-full flex-1">
+          <div className="flex w-full flex-1 justify-center">
             <div className="w-full max-w-[880px] lg:h-full lg:flex lg:flex-col">
               <header className="h-[104px] ui-px-6 py-5">
                 <Link href="/" className="inline-flex h-full items-center gap-3">
