@@ -16,52 +16,52 @@ const navLinks = [
 const featureCards = [
   {
     icon: ScanSearch,
-    title: "Competitive Analysis",
-    description: "Map rivals, uncover whitespace, and identify your most defensible angle in minutes.",
+    title: "Research, Fast",
+    description: "Get competitor context and market signals quickly so you can make sharper product decisions.",
   },
   {
     icon: FileText,
-    title: "PRD Generation",
-    description: "Turn requirements into production-grade docs with acceptance criteria, scopes, and edge cases.",
+    title: "MVP Plan + PRD",
+    description: "Turn rough ideas into actionable docs with priorities, acceptance criteria, and clear scope.",
   },
   {
     icon: Rocket,
-    title: "App Generation",
-    description: "Generate full-stack app scaffolds and implementation plans tailored to your product goals.",
+    title: "Actionable Mockups",
+    description: "Generate real UI directions you can compare, discuss, and iterate before writing production code.",
   },
   {
     icon: GitBranch,
-    title: "Architecture Mapping",
-    description: "Model services, data flows, and technical tradeoffs before writing expensive code.",
+    title: "Technical Blueprint",
+    description: "Map architecture, data flow, and implementation tradeoffs before committing engineering time.",
   },
   {
     icon: ListChecks,
-    title: "Task Breakdown",
-    description: "Auto-generate milestones and execution checklists aligned with your timeline.",
+    title: "Execution Checklist",
+    description: "Break work into clear milestones so your team knows exactly what to build next.",
   },
   {
     icon: CloudUpload,
-    title: "1-Click Deploy",
-    description: "Ship directly to cloud infrastructure once your plan and app are generated.",
+    title: "Ship When Ready",
+    description: "Move from planning to launch in one workspace instead of jumping between disconnected tools.",
   },
 ]
 
 const steps = [
   {
     number: "01",
-    body: "Describe your idea\nTell IDEA2 what you want to build, who it serves, and your business constraints.",
+    body: "Describe what you want to build\nShare your idea, target users, and constraints in plain language.",
   },
   {
     number: "02",
-    body: "Run AI analysis\nGenerate market research, gap analysis, risks, and confidence scores automatically.",
+    body: "Generate research + product direction\nGet focused analysis, key assumptions, and where your idea can stand out.",
   },
   {
     number: "03",
-    body: "Generate PRD + technical plan\nProduce implementation-ready documentation, architecture, and work breakdown.",
+    body: "Create your MVP plan + mockups\nProduce actionable docs and compare design directions before implementation.",
   },
   {
     number: "04",
-    body: "Deploy with one click\nShip your generated app and iterate with AI guidance from a single workspace.",
+    body: "Build and iterate\nShip faster with a clear plan, then refine with feedback as you learn from users.",
   },
 ]
 
@@ -157,41 +157,41 @@ export default function LandingPage() {
       <SectionCard>
         <div className="flex items-center justify-center pt-10 pb-8 md:pt-14">
           <div className="inline-flex items-center rounded-full border border-border-subtle px-4 py-2 text-xs font-medium tracking-[0.16em] text-text-secondary">
-            AI-Powered Business Idea Platform
+            Lean-in Workflow For Builders
           </div>
         </div>
 
         <h1 className="max-w-[980px] mx-auto text-center text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.06em] font-semibold">
-          Transform Your Ideas Into Reality
+          Build your startup idea this weekend — not “someday.”
         </h1>
 
         <p className="mx-auto mt-6 max-w-[780px] text-center text-[20px] leading-relaxed text-text-secondary">
-          Go from rough concept to validated plan, generated PRD, and deploy-ready app in one AI-assisted workflow.
+          Turn one idea into research, MVP plan, and actionable mockups in minutes. No fluff. No “where do I start?” spiral.
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
           <Link href="/signup">
-            <Button className="h-14 px-7 bg-primary text-base font-semibold text-white">Get Started Free</Button>
+            <Button className="h-14 px-7 bg-primary text-base font-semibold text-white">Get Early Access</Button>
           </Link>
           <Link href="#features">
             <Button variant="outline" className="h-14 px-7 border-border-subtle text-base font-semibold bg-white text-text-primary">
-              Learn More
+              See How It Works
             </Button>
           </Link>
         </div>
 
         <div className="mx-auto mt-12 grid w-full max-w-[780px] gap-4 sm:grid-cols-3">
           <div className="flex h-[112px] flex-col items-center justify-center border border-text-primary bg-text-primary text-white p-4">
-            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">5+</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#F0F0F0]">Analysis Types</p>
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">3x</p>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#F0F0F0]">Design Directions</p>
           </div>
           <div className={uiStylePresets.landingStatCard}>
-            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">AI</p>
-            <p className={uiStylePresets.landingFeaturePill}>Powered</p>
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">MVP</p>
+            <p className={uiStylePresets.landingFeaturePill}>Ready Plan</p>
           </div>
           <div className={uiStylePresets.landingStatCard}>
-            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">1-Click</p>
-            <p className={uiStylePresets.landingFeaturePill}>Deploy</p>
+            <p className="text-[36px] font-semibold leading-none tracking-[-0.06em]">Fast</p>
+            <p className={uiStylePresets.landingFeaturePill}>First Drafts</p>
           </div>
         </div>
       </SectionCard>
@@ -200,8 +200,18 @@ export default function LandingPage() {
         <section id="features" className="py-3">
           <p className="ui-kicker-label">Features</p>
           <h2 className="mt-4 text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
-            Everything You Need To Build Smarter
+            From idea to momentum — without the usual excuses
           </h2>
+
+          <div className="mt-8 border border-border-subtle bg-[#F8FAFC] p-6 md:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Signature Feature</p>
+            <h3 className="mt-3 text-[clamp(1.4rem,2.4vw,2rem)] leading-tight tracking-[-0.03em] font-semibold">
+              One idea. Three design directions. Instant clarity.
+            </h3>
+            <p className="mt-3 max-w-[860px] text-sm leading-relaxed text-text-secondary">
+              Generate multiple mockup directions for the same core screen, compare them side-by-side, and pick the direction you want to build first.
+            </p>
+          </div>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featureCards.map((item) => (
@@ -221,7 +231,7 @@ export default function LandingPage() {
         <section id="how-it-works" className="py-3">
           <p className="ui-kicker-label">How It Works</p>
           <h2 className="mt-4 max-w-[760px] text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
-            From Idea To Deployed Product
+            Your first version, broken into clear steps
           </h2>
 
           <div className="mt-8 space-y-4">
@@ -295,14 +305,14 @@ export default function LandingPage() {
       <section className="border-t border-border-subtle py-16 md:py-20">
         <div className={`${container} text-center`}>
           <h2 className="mx-auto max-w-[860px] text-[clamp(2rem,4.6vw,4rem)] leading-[0.96] tracking-[-0.06em] font-semibold">
-            Ready To Turn Your Next Idea Into A Real Product?
+            Stop waiting. Start building.
           </h2>
           <p className="mx-auto mt-6 max-w-[760px] text-xl text-text-secondary">
-            Join founders and product teams using IDEA2 to research, plan, generate, and launch faster.
+            Get early access and turn your next idea into research, plans, and mockups you can actually execute.
           </p>
           <Link href="/signup" className="inline-block mt-8">
             <Button className="h-14 px-8 text-base font-semibold bg-primary text-white">
-              Get Started Free
+              Get Early Access
               <ArrowRight className="ml-2 ui-icon-16" />
             </Button>
           </Link>
