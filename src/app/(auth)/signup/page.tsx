@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
-import { Lightbulb, ArrowRight, Check } from "lucide-react"
+import { Lightbulb, Check } from "lucide-react"
 import { uiStylePresets } from "@/lib/ui-style-presets"
 
 function SignupScreen() {
@@ -156,7 +156,7 @@ function SignupScreen() {
                     className={uiStylePresets.authSocialButton}
                     disabled={loading}
                   >
-                    <ArrowRight className="ui-icon-16" />
+                    <img src="/google-logo.svg" alt="Google" className="h-4 w-4" />
                     {loading ? "Connecting..." : socialText}
                   </button>
 
