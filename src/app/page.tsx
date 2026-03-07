@@ -228,6 +228,10 @@ export default function LandingPage() {
       </SectionCard>
 
       <SectionCard>
+        <InspirationProjectsSection />
+      </SectionCard>
+
+      <SectionCard>
         <section id="how-it-works" className="py-3">
           <p className="ui-kicker-label">How It Works</p>
           <h2 className="mt-4 max-w-[760px] text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.06em] font-semibold">
@@ -296,10 +300,6 @@ export default function LandingPage() {
             })}
           </div>
         </section>
-      </SectionCard>
-
-      <SectionCard>
-        <InspirationProjectsSection />
       </SectionCard>
 
       <section className="border-t border-border-subtle py-16 md:py-20">
