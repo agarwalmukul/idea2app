@@ -4,7 +4,7 @@ import React from "react"
 import { Renderer, JSONUIProvider } from "@json-render/react"
 import { mockupRegistry } from "@/lib/json-render/registry"
 import type { Spec } from "@json-render/core"
-import { Monitor, Smartphone, Tablet, ChevronLeft, ChevronRight, Layers } from "lucide-react"
+import { Monitor, Smartphone, Tablet, Layers } from "lucide-react"
 
 interface MockupRendererProps {
   content: string
@@ -521,127 +521,16 @@ function JsonRenderPage({ page }: { page: MockupPage }) {
 // ---- Multi-page interactive mockup viewer ----
 
 function MockupViewer({ pages }: { pages: MockupPage[] }) {
-  const [activeIndex, setActiveIndex] = React.useState(0)
-  const [viewport, setViewport] = React.useState<Viewport>("desktop")
-
-  const activePage = pages[activeIndex]
-  const vp = viewportConfig[viewport]
-
   return (
-    <div className="space-y-0">
-      {/* Toolbar: page tabs + viewport switcher */}
-      <div className="flex items-center justify-between border border-border rounded-t-xl bg-muted/30 px-1">
-        {/* Page tabs (scrollable if many) */}
-        <div className="flex items-center gap-0.5 overflow-x-auto py-1 flex-1 min-w-0">
-          {pages.map((page, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-                transition-all duration-150 whitespace-nowrap shrink-0
-                ${i === activeIndex
-                  ? "bg-background text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }
-              `}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                i === activeIndex ? "bg-primary" : "bg-muted-foreground/30"
-              }`} />
-              {page.title}
-            </button>
-          ))}
+    <div className="space-y-6">
+      {pages.map((page, index) => (
+        <div key={`${page.title}-${index}`} className="space-y-2">
+          <div className="text-xs font-medium text-muted-foreground border-l-2 border-primary pl-2">
+            Option {index + 1}: {page.title}
+          </div>
+          <SinglePageViewer page={page} />
         </div>
-
-        {/* Page counter + viewport switcher */}
-        <div className="flex items-center gap-2 pl-3 border-l border-border ml-2 shrink-0">
-          {/* Page navigation arrows */}
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
-              disabled={activeIndex === 0}
-              className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="text-[10px] text-muted-foreground font-mono tabular-nums px-0.5">
-              {activeIndex + 1}/{pages.length}
-            </span>
-            <button
-              onClick={() => setActiveIndex(Math.min(pages.length - 1, activeIndex + 1))}
-              disabled={activeIndex === pages.length - 1}
-              className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Viewport toggles */}
-          <div className="flex items-center bg-background rounded-md border border-border p-0.5">
-            {(Object.entries(viewportConfig) as [Viewport, typeof vp][]).map(([key, config]) => {
-              const Icon = config.icon
-              return (
-                <button
-                  key={key}
-                  onClick={() => setViewport(key)}
-                  title={config.label}
-                  className={`
-                    p-1 rounded transition-colors
-                    ${key === viewport
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                    }
-                  `}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Browser chrome frame */}
-      <div className="border-x border-border bg-muted/20">
-        {/* URL bar */}
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border">
-          <div className="flex gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-          </div>
-          <div className="flex-1 flex items-center gap-1.5 bg-background rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground font-mono">
-            <span className="text-green-600">●</span>
-            <span>app.example.com/{activePage.title.toLowerCase().replace(/\s+/g, "-")}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Viewport container */}
-      <div className="border-x border-b border-border rounded-b-xl bg-muted/10 overflow-hidden">
-        <div className="flex justify-center py-0 bg-[repeating-conic-gradient(rgb(0_0_0/0.02)_0%_25%,transparent_0%_50%)] bg-[length:16px_16px]">
-          <div
-            className="w-full transition-all duration-300 ease-out bg-white"
-            style={{
-              maxWidth: vp.width,
-              minHeight: "500px",
-            }}
-          >
-            {/* Page description */}
-            {activePage.description && (
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                <p className="text-xs text-gray-500">{activePage.description}</p>
-              </div>
-            )}
-
-            {/* Rendered mockup */}
-            <div className="p-4">
-              <JsonRenderPage page={activePage} />
-            </div>
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
@@ -898,7 +787,7 @@ export function MockupRenderer({ content, className = "" }: MockupRendererProps)
       )
     }
 
-    // Multi-page: tabbed viewer
+    // Multi-page: show all options in linear order
     if (pages.length > 1) {
       return (
         <div className={className}>
