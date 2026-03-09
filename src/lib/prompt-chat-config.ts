@@ -25,9 +25,9 @@ export const AVAILABLE_MODELS = [
     description: "High performance",
   },
   {
-    id: "google/gemini-2.0-flash-exp:free",
-    name: "Gemini 2.0 Flash",
-    description: "Fast and free",
+    id: "google/gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Latest fast Gemini model",
   },
   {
     id: "meta-llama/llama-3.3-70b-instruct",
