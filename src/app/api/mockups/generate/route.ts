@@ -70,6 +70,72 @@ function buildLegacyTemplate(content: string): string | null {
   return normalizeLegacyOptionTemplate(content)
 }
 
+function cleanSectionTitle(rawTitle: string): string {
+  return rawTitle
+    .replace(/^(\`|\`{3,})\s*|\s+\`?\`{3,}$/g, "")
+    .replace(/^\s*Option\s*[A-C]\s*-\s*Option\s*[A-C]\s*[-:]?\s*/i, "")
+    .replace(/^\s*Option\s*[A-C]\s*[-:]?/i, "")
+    .replace(/^\s*-\s*/, "")
+    .trim()
+}
+
+function buildFallbackProsCons(title: string, json: string): { pros: string[]; cons: string[] } {
+  const normalizedTitle = (title || "").toLowerCase()
+  const normalizedJson = (json || "").toLowerCase()
+  const text = `${normalizedTitle} ${normalizedJson}`
+
+  const pros: string[] = []
+  const cons: string[] = []
+
+  if (/\bform\b/.test(text) || /\binput\b/.test(text) || /\bbutton\b/.test(text)) {
+    pros.push("Includes interactive controls for user input, so core actions are directly actionable from the UI.")
+  }
+
+  if (/\bsidebar\b/.test(text) || /\bnav\b/.test(text) || /\bmenu\b/.test(text)) {
+    pros.push("Uses a clear navigation structure to guide users between key sections.")
+  }
+
+  if (/\bcard\b/.test(text) || /\bgrid\b/.test(text) || /\bstack\b/.test(text)) {
+    pros.push("Breaks content into reusable visual containers for legible layout structure.")
+  }
+
+  if (/\bchart\b/.test(text) || /\bdashboard\b/.test(text) || /\bstat\b/.test(text)) {
+    pros.push("Highlights operational information in a way that is easy to expand into analytics flows.")
+  }
+
+  if (/two-column|two col|split|sidebar/.test(normalizedTitle) || /\btwo\s*column/.test(text)) {
+    pros.push("Supports side-by-side information organization for faster scan-and-compare decisions.")
+  }
+
+  if (pros.length < 2) {
+    const fallback = title || "this layout"
+    pros.push(`Uses ${fallback} as the core interaction path with a straightforward component structure.`)
+    pros.push("Keeps generated screen scaffolding compact for stable downstream implementation.")
+  }
+
+  if (/\bchart\b|\bgraph\b|\banalytics\b|\bmetric\b|\bstat\b/.test(text)) {
+    cons.push("Requires careful data-model mapping to keep dashboard numbers accurate across edge cases.")
+  }
+
+  if (/\bupload\b|\bpayment\b|\bintegrat|\bbooking\b|\bsms\b|\bemail\b|\bvoice\b/.test(text)) {
+    cons.push("Increases backend and integration scope (APIs, permissions, and operational workflows) beyond wireframe-level detail.")
+  }
+
+  if (/\bnavigation\b|\bmenu\b/.test(text) || /\bstep\b|\bwizard\b|\bonboard\b|\bflows?\b/.test(text)) {
+    cons.push("Needs explicit microcopy and state handling to keep multi-step flows from feeling confusing.")
+  }
+
+  if (cons.length < 2) {
+    cons.push("Touch interactions need a dedicated responsive pass to avoid spacing and overflow regressions on smaller screens.")
+    cons.push("Accessibility and keyboard behavior should be validated before production hardening.")
+  }
+
+  return {
+    pros: pros.slice(0, 4),
+    cons: cons.slice(0, 4),
+  }
+}
+
 function normalizeLegacyOptionTemplate(content: string): string | null {
   const chunks = extractLegacyOptionChunks(content)
 
@@ -91,27 +157,26 @@ function normalizeLegacyOptionTemplate(content: string): string | null {
   for (let i = 0; i < selectedSections.length; i += 1) {
     const section = selectedSections[i]
     const label = OPTION_LABELS[i] || `${i + 1}`
-    const cleanedTitle = section.title
-      .replace(/^(\`|\`{3,})\s*|\s+\`?\`{3,}$/g, "")
-      .replace(/^\s*Option\s*[A-C]\s*-\s*Option\s*[A-C]\s*[-:]?\s*/i, "")
-      .replace(/^\s*Option\s*[A-C]\s*[-:]?/i, "")
-      .replace(/^\s*-\s*/, "")
-      .trim()
-
+    const cleanedTitle = cleanSectionTitle(section.title)
     const title = cleanedTitle || `Option ${label}`
+    const fallback = buildFallbackProsCons(title, section.json)
+
     output.push(`### Option ${label} - ${title}`)
     output.push("Pros:")
-    output.push("- Preserves the generated structure from the source output.")
-    output.push("- Keeps layout-focused JSON elements intact.")
+    fallback.pros.forEach((item) => {
+      output.push(`- ${item}`)
+    })
     output.push("Cons:")
-    output.push("- Tradeoffs were not explicitly provided in source output.")
-    output.push("- Consider regenerating to enrich comparison language.")
+    fallback.cons.forEach((item) => {
+      output.push(`- ${item}`)
+    })
     output.push(section.json)
     output.push("")
   }
 
   return output.join("\n")
 }
+
 async function enforceMockupFormat({
   client,
   content,
@@ -126,33 +191,16 @@ async function enforceMockupFormat({
   model: string,
 }): Promise<string> {
   if (isValidMockupStructure(content)) {
-    const canonicalContent = normalizeLegacyOptionTemplate(content)
-    if (canonicalContent) return canonicalContent
     return content
   }
 
-  const preNormalized = normalizeLegacyOptionTemplate(content)
-  if (preNormalized) {
-    return preNormalized
-  }
-
   const fallbackPrompt =
-    `You are a strict formatter. Convert the mockup result below into the required template exactly.
-` +
-    `Required: exactly 3 options labeled Option A/B/C.
-` +
-    `For each option include: heading, Pros section (2-4 bullets), Cons section (2-4 bullets), and ONE json-render code block.
-` +
-    `Preserve the JSON blocks whenever possible; only adjust surrounding prose as needed.
-
-` +
-    `Source output:
-
-${content}
-
-` +
-    `Project name: ${projectName}
-` +
+    `You are a strict formatter. Convert the mockup result below into the required template exactly.\n` +
+    `Required: exactly 3 options labeled Option A/B/C.\n` +
+    `For each option include: heading, Pros section (2-4 bullets), Cons section (2-4 bullets), and ONE json-render code block.\n` +
+    `Preserve the JSON blocks whenever possible; only adjust surrounding prose as needed.\n\n` +
+    `Source output:\n\n${content}\n\n` +
+    `Project name: ${projectName}\n` +
     `MVP context: ${mvpPlan}`
 
   try {
@@ -163,18 +211,18 @@ ${content}
     })
 
     const rewritten = rewriteResp.choices?.[0]?.message?.content?.trim() || ""
+    if (rewritten && isValidMockupStructure(rewritten)) {
+      return rewritten
+    }
+
     const normalizedRewrite = normalizeLegacyOptionTemplate(rewritten)
     if (normalizedRewrite) {
       return normalizedRewrite
     }
 
-    if (rewritten && isValidMockupStructure(rewritten)) {
-      return rewritten
-    }
-
-    if (rewritten) {
-      const legacy = buildLegacyTemplate(content)
-      if (legacy) return legacy
+    const legacy = buildLegacyTemplate(content)
+    if (legacy) {
+      return legacy
     }
   } catch (error) {
     console.warn("[Mockup] format enforcement failed, using deterministic fallback", error)
@@ -188,7 +236,6 @@ ${content}
   console.warn("[Mockup] format enforcement failed, using original generated content")
   return content
 }
-
 
 function createStreamSender(controller: ReadableStreamDefaultController) {
   return (event: object) =>
