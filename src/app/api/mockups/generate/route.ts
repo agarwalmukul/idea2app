@@ -79,55 +79,63 @@ function cleanSectionTitle(rawTitle: string): string {
     .trim()
 }
 
-function buildFallbackProsCons(title: string, json: string): { pros: string[]; cons: string[] } {
+function buildFallbackProsCons(title: string, json: string, optionLabel: string): { pros: string[]; cons: string[] } {
   const normalizedTitle = (title || "").toLowerCase()
   const normalizedJson = (json || "").toLowerCase()
   const text = `${normalizedTitle} ${normalizedJson}`
+  const has = (pattern: RegExp) => pattern.test(text)
 
   const pros: string[] = []
   const cons: string[] = []
 
-  if (/\bform\b/.test(text) || /\binput\b/.test(text) || /\bbutton\b/.test(text)) {
-    pros.push("Includes interactive controls for user input, so core actions are directly actionable from the UI.")
+  if (has(/wizard|step|\btab\b|\btabs?\b/)) {
+    pros.push(`${optionLabel}: Uses an explicit progression pattern to reduce cognitive load during setup.`)
   }
 
-  if (/\bsidebar\b/.test(text) || /\bnav\b/.test(text) || /\bmenu\b/.test(text)) {
-    pros.push("Uses a clear navigation structure to guide users between key sections.")
+  if (has(/faq|question|table|faqs?|help/)) {
+    pros.push("Groups operational details into structured blocks, making information easy to scan and maintain.")
   }
 
-  if (/\bcard\b/.test(text) || /\bgrid\b/.test(text) || /\bstack\b/.test(text)) {
-    pros.push("Breaks content into reusable visual containers for legible layout structure.")
+  if (has(/nav|menu|sidebar|navigation/)) {
+    pros.push("Provides obvious wayfinding so users can jump between configuration, analytics, and content tasks quickly.")
   }
 
-  if (/\bchart\b/.test(text) || /\bdashboard\b/.test(text) || /\bstat\b/.test(text)) {
-    pros.push("Highlights operational information in a way that is easy to expand into analytics flows.")
+  if (has(/form|input|textbox|combobox|select/)) {
+    pros.push("Keeps agent setup and management operations directly editable in a single screen.")
   }
 
-  if (/two-column|two col|split|sidebar/.test(normalizedTitle) || /\btwo\s*column/.test(text)) {
-    pros.push("Supports side-by-side information organization for faster scan-and-compare decisions.")
+  if (has(/card|grid/)) {
+    pros.push("Uses modular cards/grids to keep functional areas visually separated and scannable.")
+  }
+
+  if (has(/button/) && has(/save|deploy|preview|play/)) {
+    pros.push("Places high-value actions near relevant content, making completion flow straightforward.")
   }
 
   if (pros.length < 2) {
-    const fallback = title || "this layout"
-    pros.push(`Uses ${fallback} as the core interaction path with a straightforward component structure.`)
-    pros.push("Keeps generated screen scaffolding compact for stable downstream implementation.")
+    pros.push(`${optionLabel}: Keeps layout hierarchy explicit for faster handoff to implementation.`)
+    pros.push("Reduces visual ambiguity with short labels and clearly grouped controls.")
   }
 
-  if (/\bchart\b|\bgraph\b|\banalytics\b|\bmetric\b|\bstat\b/.test(text)) {
-    cons.push("Requires careful data-model mapping to keep dashboard numbers accurate across edge cases.")
+  if (has(/dashboard|chart|stat|analytics/)) {
+    cons.push("Adds data synchronization and freshness requirements that raise backend implementation complexity.")
   }
 
-  if (/\bupload\b|\bpayment\b|\bintegrat|\bbooking\b|\bsms\b|\bemail\b|\bvoice\b/.test(text)) {
-    cons.push("Increases backend and integration scope (APIs, permissions, and operational workflows) beyond wireframe-level detail.")
+  if (has(/integration|api|webhook|voice|tts|booking/)) {
+    cons.push("Needs platform/API integration work, which increases testing surface and operational assumptions.")
   }
 
-  if (/\bnavigation\b|\bmenu\b/.test(text) || /\bstep\b|\bwizard\b|\bonboard\b|\bflows?\b/.test(text)) {
-    cons.push("Needs explicit microcopy and state handling to keep multi-step flows from feeling confusing.")
+  if (has(/wizard|step|flow|onboard/)) {
+    cons.push("Requires explicit state and validation logic to avoid getting users stuck between flow stages.")
+  }
+
+  if (has(/faq|table|responsive|mobile/)) {
+    cons.push("Dense content-heavy sections need careful responsive tuning for mobile readability.")
   }
 
   if (cons.length < 2) {
-    cons.push("Touch interactions need a dedicated responsive pass to avoid spacing and overflow regressions on smaller screens.")
-    cons.push("Accessibility and keyboard behavior should be validated before production hardening.")
+    cons.push("Multiple interactive regions demand stronger keyboard/focus treatment for accessibility.")
+    cons.push("Live business data should be validated before exposing advanced controls in production.")
   }
 
   return {
@@ -159,7 +167,7 @@ function normalizeLegacyOptionTemplate(content: string): string | null {
     const label = OPTION_LABELS[i] || `${i + 1}`
     const cleanedTitle = cleanSectionTitle(section.title)
     const title = cleanedTitle || `Option ${label}`
-    const fallback = buildFallbackProsCons(title, section.json)
+    const fallback = buildFallbackProsCons(title, section.json, `Option ${label}`)
 
     output.push(`### Option ${label} - ${title}`)
     output.push("Pros:")
@@ -177,6 +185,31 @@ function normalizeLegacyOptionTemplate(content: string): string | null {
   return output.join("\n")
 }
 
+function sanitizeMockupProsCons(content: string): string {
+  const chunks = extractLegacyOptionChunks(content)
+  if (chunks.length < 3) return content
+
+  const selected = chunks.slice(0, 3)
+  const lines: string[] = []
+
+  for (let i = 0; i < selected.length; i += 1) {
+    const section = selected[i]
+    const label = OPTION_LABELS[i] || `${i + 1}`
+    const title = cleanSectionTitle(section.title) || `Option ${label}`
+    const fallback = buildFallbackProsCons(title, section.json, `Option ${label}`)
+
+    lines.push(`### Option ${label} - ${title}`)
+    lines.push("Pros:")
+    fallback.pros.forEach((item) => lines.push(`- ${item}`))
+    lines.push("Cons:")
+    fallback.cons.forEach((item) => lines.push(`- ${item}`))
+    lines.push(section.json)
+    lines.push("")
+  }
+
+  return lines.join("\n")
+}
+
 async function enforceMockupFormat({
   client,
   content,
@@ -191,7 +224,7 @@ async function enforceMockupFormat({
   model: string,
 }): Promise<string> {
   if (isValidMockupStructure(content)) {
-    return content
+    return sanitizeMockupProsCons(content)
   }
 
   const fallbackPrompt =
@@ -212,7 +245,7 @@ async function enforceMockupFormat({
 
     const rewritten = rewriteResp.choices?.[0]?.message?.content?.trim() || ""
     if (rewritten && isValidMockupStructure(rewritten)) {
-      return rewritten
+      return sanitizeMockupProsCons(rewritten)
     }
 
     const normalizedRewrite = normalizeLegacyOptionTemplate(rewritten)

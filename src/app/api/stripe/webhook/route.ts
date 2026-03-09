@@ -4,6 +4,28 @@ import { getStripeClient } from "@/lib/stripe"
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
 import type Stripe from "stripe"
 
+function logWebhook(level: "info" | "warn" | "error", message: string, context: Record<string, unknown> = {}) {
+  const payload = {
+    scope: "stripe_webhook",
+    level,
+    message,
+    ts: new Date().toISOString(),
+    ...context,
+  }
+
+  if (level === "error") {
+    console.error(JSON.stringify(payload))
+    return
+  }
+
+  if (level === "warn") {
+    console.warn(JSON.stringify(payload))
+    return
+  }
+
+  console.info(JSON.stringify(payload))
+}
+
 // Use service role for webhook handling (no user context)
 function getAdminClient() {
   return createSupabaseAdmin(
@@ -18,6 +40,7 @@ export async function POST(request: Request) {
   const signature = headersList.get("stripe-signature")
 
   if (!signature) {
+    logWebhook("warn", "Missing Stripe signature header")
     return NextResponse.json({ error: "No signature" }, { status: 400 })
   }
 
@@ -31,7 +54,9 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     )
   } catch (err) {
-    console.error("Webhook signature verification failed:", err)
+    logWebhook("error", "Webhook signature verification failed", {
+      error: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json(
       { error: "Invalid signature" },
       { status: 400 }
@@ -39,6 +64,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = getAdminClient()
+
+  logWebhook("info", "Webhook event received", {
+    event_id: event.id,
+    event_type: event.type,
+    livemode: event.livemode,
+  })
 
   try {
     switch (event.type) {
@@ -166,11 +197,22 @@ export async function POST(request: Request) {
         }
         break
       }
+
+      default:
+        logWebhook("info", "Unhandled Stripe event type", {
+          event_id: event.id,
+          event_type: event.type,
+        })
+        break
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error("Webhook processing error:", error)
+    logWebhook("error", "Webhook processing error", {
+      event_id: event.id,
+      event_type: event.type,
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 }
