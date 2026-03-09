@@ -83,6 +83,7 @@ export function getMockupSystemPrompt(projectName: string): string {
       "Use Stack with direction='vertical' as the root layout for each page — this is the full-page wrapper",
       "Use Stack with direction='horizontal' and align='center' for navigation bars, toolbars, and horizontal sections that span full width",
       "Use Grid with columns=2 or columns=3 for side-by-side layouts (e.g., sidebar + content, feature cards, profile + settings)",
+      "For multiple options, make each option structurally distinct (e.g., different hierarchy, different primary layout primitive, different navigation pattern)",
       "DESIGN PRINCIPLE: Group related items into Cards, then arrange Cards in a Grid — never stack narrow Cards vertically when they belong side by side",
       "Use Separator between major page sections for visual structure",
 
@@ -94,6 +95,7 @@ export function getMockupSystemPrompt(projectName: string): string {
 
       // Component usage
       "WIREFRAME STYLE: Use short labels (1-3 words), not paragraphs of text",
+      "All content and labels should be specific and non-placeholder; avoid generic filler text",
       "Use Heading for section titles only — keep them brief (e.g., 'Features', 'Pricing')",
       "Use Text sparingly — short descriptions of what content goes there (e.g., 'Product description')",
       "Use Skeleton to represent images, banners, and media placeholders — set height props for visual weight",
