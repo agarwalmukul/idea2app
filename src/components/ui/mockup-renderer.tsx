@@ -28,6 +28,7 @@ interface MockupPage {
 function isJsonRenderContent(content: string): boolean {
   return content.includes('"root"') && content.includes('"elements"')
 }
+const OPTION_HEADER_RE = /^#{1,6}\s*Option\s*[A-C]/im
 
 /**
  * Extract a human-readable page title from a json-render spec.
@@ -251,6 +252,32 @@ function ensureProsAndCons(section: RawMockupSection, index: number) {
         ],
     notes: parsed.notes,
   }
+}
+
+function addFallbackProsConsIfMissing(page: MockupPage, index: number): MockupPage {
+  const optionLabel = `Option ${String.fromCharCode(65 + index)}`
+
+  if (page.pros.length > 0 || page.cons.length > 0) {
+    return page
+  }
+
+  return {
+    ...page,
+    pros: [
+      `${optionLabel} keeps the core flow visually clear.`,
+      `${optionLabel} is built with wireframe-ready component structure.`,
+    ],
+    cons: [
+      "Tradeoff details were not provided in this generation format.",
+      "Regenerate with the standard option format for explicit pros/cons.",
+    ],
+  }
+}
+
+const OPTION_ROOT_ID_RE = /^(option|variation|candidate|layout|screen)/i
+
+function isLikelyOptionRootContainer(id: string): boolean {
+  return OPTION_ROOT_ID_RE.test(id)
 }
 
 function parseJsonRenderPages(raw: string): MockupPage[] {
@@ -860,6 +887,14 @@ function splitSpecIntoPages(spec: Spec): MockupPage[] {
     return [] // Not splittable
   }
 
+  // Safety check: only split when all children look like option-level containers.
+  const allChildrenAreLikelyOptions = rootEl.children.every((id) =>
+    isLikelyOptionRootContainer(id)
+  )
+  if (!allChildrenAreLikelyOptions) {
+    return []
+  }
+
   // Check if root's children look like individual pages
   // (each child is a Stack or Card with its own subtree)
   const childElements = rootEl.children
@@ -909,7 +944,6 @@ function splitSpecIntoPages(spec: Spec): MockupPage[] {
 
   return pages
 }
-
 // ---- Main component ----
 
 /**
@@ -940,7 +974,7 @@ export function MockupRenderer({ content, className = "" }: MockupRendererProps)
     if (pages.length > 1) {
       return (
         <div className={className}>
-          <MockupViewer pages={pages} />
+          <MockupViewer pages={pages.map((page, index) => addFallbackProsConsIfMissing(page, index))} />
         </div>
       )
     }
@@ -948,13 +982,16 @@ export function MockupRenderer({ content, className = "" }: MockupRendererProps)
     return (
       <div className={className}>
         <SinglePageViewer
-          page={{
-            title: "Wireframe",
-            description: "Layout wireframe generated from the MVP plan",
-            pros: [],
-            cons: [],
-            spec: patchSpec,
-          }}
+          page={addFallbackProsConsIfMissing(
+            {
+              title: "Wireframe",
+              description: "Layout wireframe generated from the MVP plan",
+              pros: [],
+              cons: [],
+              spec: patchSpec,
+            },
+            0
+          )}
         />
       </div>
     )
@@ -978,7 +1015,7 @@ export function MockupRenderer({ content, className = "" }: MockupRendererProps)
     if (pages.length > 1) {
       return (
         <div className={className}>
-          <MockupViewer pages={pages} />
+          <MockupViewer pages={pages.map((page, index) => addFallbackProsConsIfMissing(page, index))} />
         </div>
       )
     }
