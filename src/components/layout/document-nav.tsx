@@ -9,7 +9,6 @@ import {
   Target,
   LayoutGrid,
   Code,
-  Rocket,
   Megaphone,
 } from "lucide-react"
 
@@ -42,8 +41,7 @@ const documents: {
   { type: "mvp", label: "MVP Plan", description: "", icon: Target },
   { type: "mockups", label: "Mockups", description: "", icon: LayoutGrid },
   { type: "techspec", label: "Tech Spec", description: "", icon: Code },
-  { type: "deploy", label: "Deploy", description: "", icon: Rocket },
-  { type: "launch", label: "Launch", description: "", icon: Megaphone },
+  { type: "launch", label: "Marketing", description: "", icon: Megaphone },
 ]
 
 function StatusBadge({ status }: { status: "done" | "in_progress" | "pending" }) {

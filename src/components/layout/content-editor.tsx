@@ -102,7 +102,7 @@ const documentConfig: Record<
     creditCost: 5,
   },
   launch: {
-    title: "Launch",
+    title: "Marketing",
     subtitle: "Generate launch plan and distribution copy",
     icon: Megaphone,
     creditCost: 5,
