@@ -243,21 +243,37 @@ export function ContentEditor({
 
     const key = `project_${projectId}_marketing_brief`
     const stored = localStorage.getItem(key)
-    if (!stored) return
-
-    try {
-      const parsed = JSON.parse(stored) as MarketingBrief
-      setMarketingBrief({
-        targetAudience: parsed.targetAudience || "",
-        stage: parsed.stage || "",
-        budget: parsed.budget || "",
-        channels: parsed.channels || "",
-        launchWindow: parsed.launchWindow || "",
-      })
-    } catch {
-      // ignore invalid local data
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as MarketingBrief
+        setMarketingBrief({
+          targetAudience: parsed.targetAudience || "",
+          stage: parsed.stage || "",
+          budget: parsed.budget || "",
+          channels: parsed.channels || "",
+          launchWindow: parsed.launchWindow || "",
+        })
+        return
+      } catch {
+        // ignore invalid local data
+      }
     }
-  }, [documentType, projectId])
+
+    // Autofill from existing project docs (best-effort)
+    const audienceMatch = projectDescription.match(/target audience[:\s]*([\s\S]*?)(?:\n##|\n\n##|$)/i)
+    const audience = audienceMatch?.[1]
+      ?.replace(/\n+/g, " ")
+      ?.replace(/\*\*/g, "")
+      ?.trim()
+
+    setMarketingBrief((prev) => ({
+      targetAudience: prev.targetAudience || audience || "",
+      stage: prev.stage || "MVP",
+      budget: prev.budget || "",
+      channels: prev.channels || "Product Hunt, X, Reddit, Email",
+      launchWindow: prev.launchWindow || "next 14 days",
+    }))
+  }, [documentType, projectId, projectDescription])
 
   useEffect(() => {
     if (typeof window === "undefined" || documentType !== "launch") return
