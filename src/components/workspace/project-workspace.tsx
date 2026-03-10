@@ -641,7 +641,18 @@ export function ProjectWorkspace({
     type => ({ type, status: getDocumentStatus(type) })
   )
 
-  const handleGenerateContent = async (model?: string) => {
+  const handleGenerateContent = async (
+    model?: string,
+    options?: {
+      marketingBrief?: {
+        targetAudience: string
+        stage: string
+        budget: string
+        channels: string
+        launchWindow: string
+      }
+    }
+  ) => {
     const generatingType = activeDocument
     let didGenerate = false
     let wasStreaming = false
@@ -718,6 +729,9 @@ export function ProjectWorkspace({
             }),
             ...(generatingType === "techspec" && latestPrd?.content && {
               prd: latestPrd.content
+            }),
+            ...(generatingType === "launch" && options?.marketingBrief && {
+              marketingBrief: options.marketingBrief,
             }),
           }),
         })

@@ -26,13 +26,28 @@ export async function POST(request: Request) {
     userId = user.id
 
     const body = await request.json()
-    const { projectId: incomingProjectId, idea, name } = body
+    const { projectId: incomingProjectId, idea, name, marketingBrief } = body
     projectId = incomingProjectId
 
     if (!projectId || !idea || !name) {
       statusCode = 400
       errorType = "validation_error"
       errorMessage = "projectId, idea, and name are required"
+      return NextResponse.json({ error: errorMessage }, { status: 400 })
+    }
+
+    const brief = {
+      targetAudience: String(marketingBrief?.targetAudience ?? "").trim(),
+      stage: String(marketingBrief?.stage ?? "").trim(),
+      budget: String(marketingBrief?.budget ?? "").trim(),
+      channels: String(marketingBrief?.channels ?? "").trim(),
+      launchWindow: String(marketingBrief?.launchWindow ?? "").trim(),
+    }
+
+    if (!brief.targetAudience || !brief.stage || !brief.budget || !brief.channels || !brief.launchWindow) {
+      statusCode = 400
+      errorType = "validation_error"
+      errorMessage = "marketingBrief with 5 fields is required"
       return NextResponse.json({ error: errorMessage }, { status: 400 })
     }
 
@@ -65,44 +80,54 @@ export async function POST(request: Request) {
       )
     }
 
-    const content = `# Launch Plan — ${name}
+    const channels = brief.channels.split(",").map((c: string) => c.trim()).filter(Boolean)
+    const immediateChannels = channels.slice(0, 3)
+    const scheduledChannels = channels.slice(3)
+
+    const content = `# Marketing Plan — ${name}
+
+## Brief Inputs
+- **Target audience:** ${brief.targetAudience}
+- **Stage:** ${brief.stage}
+- **Budget:** ${brief.budget}
+- **Launch window:** ${brief.launchWindow}
+- **Channels:** ${channels.join(", ")}
 
 ## Positioning
 - **Product:** ${name}
-- **Who it is for:** Founders/operators looking to go from idea to build faster.
-- **Core value prop:** ${idea.slice(0, 220)}${idea.length > 220 ? "..." : ""}
+- **Who it is for:** ${brief.targetAudience}
+- **Core value prop:** ${idea.slice(0, 240)}${idea.length > 240 ? "..." : ""}
 
 ## Channel Priority
-### Immediate (this week)
-1. Product Hunt prep (tagline, one-liner, first comment draft)
-2. X thread + short demo clip
-3. Founder communities (curated, relevant only)
+### Immediate (${brief.launchWindow})
+${immediateChannels.length > 0 ? immediateChannels.map((c, i) => `${i + 1}. ${c}`).join("\n") : "1. Product Hunt\n2. X\n3. Founder communities"}
 
-### Scheduled (next 2 weeks)
-1. Show HN launch post
-2. Niche directories relevant to your ICP
-3. Email list + waitlist update
+### Scheduled (next cycle)
+${scheduledChannels.length > 0 ? scheduledChannels.map((c, i) => `${i + 1}. ${c}`).join("\n") : "1. Show HN\n2. Niche communities\n3. Email/waitlist"}
 
-### Skip for MVP
-- Broad paid spend before message/activation fit
-- Heavy multi-channel automation without moderation
+### Budget Allocation (starting point)
+- **Content & creative:** 40%
+- **Distribution/boosts:** 40%
+- **Experiments:** 20%
+
+> Adjust for stage: **${brief.stage}** and budget ceiling **${brief.budget}**.
 
 ## Copy Pack (MVP)
-### Product Hunt tagline
-Build and ship your app idea with AI-guided docs, specs, and launch workflows.
+### One-liner
+${name} helps ${brief.targetAudience} move from idea to launch faster with clearer execution and distribution planning.
 
 ### Short description
-${name} helps turn raw ideas into build-ready plans and launch assets so teams can move from concept to customer faster.
+${name} turns raw concepts into build-ready plans and practical marketing execution so teams can ship and validate faster.
 
 ### Founder comment template
-We built ${name} to reduce the chaos between "idea" and "shipping." Looking for feedback on workflow clarity and launch readiness.
+We are launching ${name} for ${brief.targetAudience}. Current stage: ${brief.stage}. Looking for feedback on messaging clarity, channel fit, and activation friction.
 
 ## 14-Day Execution Checklist
 - [ ] Finalize positioning + one-liner
 - [ ] Prepare launch assets (logo, screenshots, demo)
-- [ ] Publish launch post + founder comment
-- [ ] Track signups, activation, and feedback themes
-- [ ] Ship one improvement from launch feedback within 48h
+- [ ] Ship first 3 channel posts
+- [ ] Track signups, activation, and channel-level conversion
+- [ ] Publish one iteration based on feedback within 48h
 `
 
     await supabase.from("analyses").insert({
@@ -111,7 +136,7 @@ We built ${name} to reduce the chaos between "idea" and "shipping." Looking for 
       content,
       metadata: {
         source: "inhouse",
-        model: "heuristic-launch-mvp-v1",
+
         generated_at: new Date().toISOString(),
       },
     })
