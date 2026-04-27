@@ -49,3 +49,9 @@ next-env.d.ts
 
 # local design exports
 /design/idea2App-design.json
+# Agent token-efficiency generated state
+.code-review-graph/
+.crg/
+code-review-graph.db
+.token-savior/
+token-savior.db

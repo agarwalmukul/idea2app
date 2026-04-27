@@ -6,6 +6,35 @@
         "shadcn@latest",
         "mcp"
       ]
+    },
+    "code-review-graph": {
+      "command": "uvx",
+      "args": [
+        "code-review-graph",
+        "serve",
+        "--repo",
+        "."
+      ],
+      "env": {
+        "PYTHONUTF8": "1"
+      }
+    },
+    "token-savior-recall": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "token-savior-recall[mcp]",
+        "token-savior"
+      ],
+      "env": {
+        "WORKSPACE_ROOTS": ".",
+        "TOKEN_SAVIOR_CLIENT": "claude-code",
+        "TOKEN_SAVIOR_PROFILE": "ultra",
+        "TS_MEMORY_DISABLE": "1",
+        "TS_CAPTURE_DISABLED": "1",
+        "TS_HOOK_MINIMAL": "1",
+        "TS_NO_HINTS": "1"
+      }
     }
   }
 }

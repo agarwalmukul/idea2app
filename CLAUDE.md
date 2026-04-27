@@ -127,3 +127,35 @@ Guide for creating new skills that extend Claude's capabilities.
 3. **Context matters**: Some skills work best with specific file types or project setups
 4. **Combine skills**: Use multiple skills in sequence (e.g., `/frontend-design` then `/deploy`)
 
+
+<!-- TOKEN_EFFICIENCY_START -->
+
+## Token Efficiency Protocol
+
+These repo-local rules are intentionally portable for Claude Code, Codex, and other coding agents. They combine the useful parts of code-review-graph, Token Savior Recall, Caveman, and claude-token-efficient without depending on one machine's global config.
+
+### Default workflow
+
+1. Read `PROJECT_CONTEXT.md` or the smallest relevant context file first when present. Do not scan the whole repo to orient.
+2. Before broad code review or multi-file edits, use structural tools first:
+   - `code-review-graph`: build/query the repo graph and ask for affected files / review context.
+   - `token-savior-recall`: use symbol, dependency, and memory lookup before opening full files.
+3. Read only files required by the task. Avoid opening generated/build/vendor folders and avoid files over 100KB unless the task specifically needs them.
+4. Prefer symbol-level lookup, grep/ripgrep, and targeted excerpts over full-file reads.
+5. Keep responses concise: no sycophantic opener, no closing fluff, no long summaries unless asked. Report only changed files, verification, blockers, and next actions.
+6. For review: inspect changed files plus graph blast radius, not the entire repository.
+7. For edits: make the smallest safe change, then run the narrowest meaningful verification.
+
+### Recommended local install on a new machine
+
+```bash
+# one-time prerequisites
+brew install uv || true
+
+# from this repo
+./scripts/setup-agent-token-tools.sh
+```
+
+The setup script uses `uvx` so the repo does not vendor Python packages. If an agent cannot use MCP, still follow the workflow above manually.
+
+<!-- TOKEN_EFFICIENCY_END -->
